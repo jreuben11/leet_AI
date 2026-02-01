@@ -1,17 +1,19 @@
 #!/bin/bash
 
-PROGRAMS=("1_basics")
+PROGRAMS=("1_recursion")
 
-mkdir -p out
+# Get the directory where the script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+mkdir -p "$SCRIPT_DIR/out"
 
 for BASENAME in "${PROGRAMS[@]}"; do
     echo "Processing ${BASENAME}..."
     echo "Compiling..."
-    gcc "${BASENAME}.c" -o "out/${BASENAME}"
+    gcc "$SCRIPT_DIR/${BASENAME}.c" -o "$SCRIPT_DIR/out/${BASENAME}"
 
     if [ $? -eq 0 ]; then
         echo -e "\n ${BASENAME}: Compilation successful. Running program:\n"
-        ./out/"${BASENAME}"
+        "$SCRIPT_DIR/out/${BASENAME}"
     else
         echo -e "${BASENAME}: Compilation failed.\n"
         exit 1
