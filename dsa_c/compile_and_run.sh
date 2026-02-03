@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROGRAMS=("1_recursion" "2_linked_lists")
+PROGRAMS=("1_recursion" "2_linked_lists" "skip_list")
 
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
