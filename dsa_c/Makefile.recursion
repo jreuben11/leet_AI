@@ -1,0 +1,19 @@
+# Makefile for 1_recursion
+
+CC = gcc
+CFLAGS = -Wall -Wextra
+OUTDIR = out
+TARGET = $(OUTDIR)/1_recursion
+
+all: $(OUTDIR) $(TARGET)
+
+$(OUTDIR):
+	mkdir -p $(OUTDIR)
+
+$(TARGET): 1_recursion.c
+	$(CC) $(CFLAGS) $< -o $@
+
+clean:
+	rm -f $(TARGET)
+
+.PHONY: all clean

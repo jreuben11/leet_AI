@@ -1143,6 +1143,7 @@ void cll_menu() {
     cll_destroy(list);
 }
 
+#ifndef SKIP_MAIN
 int main() {
     char choice;
 
@@ -1169,3 +1170,4 @@ int main() {
     }
     return 0;
 }
+#endif
