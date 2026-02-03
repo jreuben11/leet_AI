@@ -2,34 +2,20 @@
 
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-mkdir -p "$SCRIPT_DIR/out"
 
-# Associative array mapping program names to their Makefiles
-declare -A MAKEFILES
-
-# Define Makefile for each program
-MAKEFILES["1_recursion"]="Makefile.recursion"
-MAKEFILES["2_linked_lists"]="Makefile.linked_lists"
-MAKEFILES["skip_list"]="Makefile.skip_list"
-MAKEFILES["list_search"]="Makefile.list_search"
-
-# Ordered list of programs for menu display
+# List of programs for menu display
 PROGRAMS=("1_recursion" "2_linked_lists" "skip_list" "list_search")
 
-# Generic compilation loop using Make
-for PROGRAM in "${PROGRAMS[@]}"; do
-    echo "Compiling ${PROGRAM}..."
+# Compile all programs using the master Makefile
+echo "Building all programs..."
+make -C "$SCRIPT_DIR"
 
-    # Run make with the specific Makefile for this program
-    make -f "${MAKEFILES[$PROGRAM]}" -C "$SCRIPT_DIR"
+if [ $? -ne 0 ]; then
+    echo "Build failed."
+    exit 1
+fi
 
-    if [ $? -eq 0 ]; then
-        echo "${PROGRAM}: Compilation successful."
-    else
-        echo "${PROGRAM}: Compilation failed."
-        exit 1
-    fi
-done
+echo "Build successful."
 
 # Interactive menu to run programs
 while true; do

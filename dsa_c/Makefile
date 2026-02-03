@@ -1,37 +1,33 @@
 # Master Makefile for all DSA C programs
 
-# List of programs
-PROGRAMS = 1_recursion 2_linked_lists skip_list list_search
-
-# Corresponding Makefiles
-MAKEFILES = Makefile.recursion Makefile.linked_lists Makefile.skip_list Makefile.list_search
+MAKEFILE_DIR = makefiles
 
 # Default target: build all programs
 all:
-	@$(MAKE) -f Makefile.recursion
-	@$(MAKE) -f Makefile.linked_lists
-	@$(MAKE) -f Makefile.skip_list
-	@$(MAKE) -f Makefile.list_search
+	@$(MAKE) -C $(MAKEFILE_DIR) -f recursion.mk
+	@$(MAKE) -C $(MAKEFILE_DIR) -f linked_lists.mk
+	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk
+	@$(MAKE) -C $(MAKEFILE_DIR) -f list_search.mk
 
 # Individual program targets
 1_recursion:
-	@$(MAKE) -f Makefile.recursion
+	@$(MAKE) -C $(MAKEFILE_DIR) -f recursion.mk
 
 2_linked_lists:
-	@$(MAKE) -f Makefile.linked_lists
+	@$(MAKE) -C $(MAKEFILE_DIR) -f linked_lists.mk
 
 skip_list:
-	@$(MAKE) -f Makefile.skip_list
+	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk
 
 list_search:
-	@$(MAKE) -f Makefile.list_search
+	@$(MAKE) -C $(MAKEFILE_DIR) -f list_search.mk
 
 # Clean all build artifacts
 clean:
-	@$(MAKE) -f Makefile.recursion clean
-	@$(MAKE) -f Makefile.linked_lists clean
-	@$(MAKE) -f Makefile.skip_list clean
-	@$(MAKE) -f Makefile.list_search clean
+	@$(MAKE) -C $(MAKEFILE_DIR) -f recursion.mk clean
+	@$(MAKE) -C $(MAKEFILE_DIR) -f linked_lists.mk clean
+	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk clean
+	@$(MAKE) -C $(MAKEFILE_DIR) -f list_search.mk clean
 	@rm -rf out
 
 # Rebuild everything from scratch

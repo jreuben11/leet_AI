@@ -1,16 +1,17 @@
-# Makefile for 2_linked_lists
+# Makefile for skip_list
 
 CC = gcc
 CFLAGS = -Wall -Wextra
-OUTDIR = out
-TARGET = $(OUTDIR)/2_linked_lists
+SRCDIR = ../src
+OUTDIR = ../out
+TARGET = $(OUTDIR)/skip_list
 
 all: $(OUTDIR) $(TARGET)
 
 $(OUTDIR):
 	mkdir -p $(OUTDIR)
 
-$(TARGET): 2_linked_lists.c
+$(TARGET): $(SRCDIR)/skip_list.c
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:

@@ -1,16 +1,17 @@
-# Makefile for 1_recursion
+# Makefile for 2_linked_lists
 
 CC = gcc
 CFLAGS = -Wall -Wextra
-OUTDIR = out
-TARGET = $(OUTDIR)/1_recursion
+SRCDIR = ../src
+OUTDIR = ../out
+TARGET = $(OUTDIR)/2_linked_lists
 
 all: $(OUTDIR) $(TARGET)
 
 $(OUTDIR):
 	mkdir -p $(OUTDIR)
 
-$(TARGET): 1_recursion.c
+$(TARGET): $(SRCDIR)/2_linked_lists.c
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:

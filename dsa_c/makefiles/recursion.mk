@@ -1,16 +1,17 @@
-# Makefile for skip_list
+# Makefile for 1_recursion
 
 CC = gcc
 CFLAGS = -Wall -Wextra
-OUTDIR = out
-TARGET = $(OUTDIR)/skip_list
+SRCDIR = ../src
+OUTDIR = ../out
+TARGET = $(OUTDIR)/1_recursion
 
 all: $(OUTDIR) $(TARGET)
 
 $(OUTDIR):
 	mkdir -p $(OUTDIR)
 
-$(TARGET): skip_list.c
+$(TARGET): $(SRCDIR)/1_recursion.c
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
