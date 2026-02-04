@@ -59,7 +59,30 @@ void generateKStrings(int A[], int n, int k, int original_n) {
         A[n - 1] = i;
         generateKStrings(A, n - 1, k, original_n);
     }
-}   
+}
+
+// Tower of Hanoi: Move n disks from source peg to destination peg using auxiliary peg
+// Constraint: Never place a larger disk on top of a smaller disk
+// Algorithm:
+// 1. Move n-1 disks from source to auxiliary (using destination as temporary)
+// 2. Move the largest disk from source to destination
+// 3. Move n-1 disks from auxiliary to destination (using source as temporary)
+// Time Complexity: O(2^n) - requires 2^n - 1 moves
+// Space Complexity: O(n) - recursion stack depth
+void towers_of_hanoi(int n, char source, char destination, char auxiliary) {
+    if (n == 1) {
+        printf("Move disk 1 from %c to %c\n", source, destination);
+        return;
+    }
+    // Move n-1 disks from source to auxiliary using destination
+    towers_of_hanoi(n - 1, source, auxiliary, destination);
+
+    // Move the largest disk from source to destination
+    printf("Move disk %d from %c to %c\n", n, source, destination);
+
+    // Move n-1 disks from auxiliary to destination using source
+    towers_of_hanoi(n - 1, auxiliary, destination, source);
+}
 
 int main() {
     char choice;
@@ -74,6 +97,7 @@ int main() {
         printf("3. isSortedArray\n");
         printf("4. Generate Bit Strings\n");
         printf("5. Generate K-ary Strings\n");
+        printf("6. Tower of Hanoi\n");
         printf("x. Exit\n");
         printf("Enter choice: ");
         scanf(" %c", &choice);
@@ -145,6 +169,24 @@ int main() {
             } else {
                  generateKStrings(arr, n, k, n);
                  printf("\n");
+            }
+        } else if (choice == '6') { // Tower of Hanoi
+            printf("Enter number of disks: ");
+            scanf("%d", &n);
+            if (n <= 0) {
+                printf("Error: number of disks must be positive\n");
+            } else if (n > 20) {
+                printf("Warning: n > 20 will produce a lot of output (2^n - 1 = %d moves)\n",
+                       (1 << n) - 1);
+                printf("Continue? (y/n): ");
+                char confirm;
+                scanf(" %c", &confirm);
+                if (confirm == 'y' || confirm == 'Y') {
+                    towers_of_hanoi(n, 'A', 'C', 'B');
+                }
+            } else {
+                printf("Moving %d disks from peg A to peg C using peg B:\n", n);
+                towers_of_hanoi(n, 'A', 'C', 'B');
             }
         }
     }

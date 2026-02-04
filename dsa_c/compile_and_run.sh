@@ -4,7 +4,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # List of programs for menu display
-PROGRAMS=("1_recursion" "2_linked_lists" "skip_list" "list_search")
+PROGRAMS=("1_recursion" "2_linked_lists" "3_stacks_and_queues" "skip_list" "list_search" "dynamic_programming")
 
 # Compile all programs using the master Makefile
 echo "Building all programs..."

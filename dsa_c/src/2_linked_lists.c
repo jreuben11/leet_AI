@@ -1,16 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "2_linked_lists.h"
 
 // --- Singly Linked List (SLL) ---
-
-struct SLLNode {
-    int data;
-    struct SLLNode* next;
-};
-
-struct SLL {
-    struct SLLNode* head;
-};
 
 struct SLL* sll_create() {
     struct SLL* list = (struct SLL*)malloc(sizeof(struct SLL));

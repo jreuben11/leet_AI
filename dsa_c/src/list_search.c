@@ -403,6 +403,279 @@ struct SLLNode* reverse_recursive_single(struct SLLNode* head) {
     return new_head;
 }
 
+// ========================================
+// List Intersection Detection (Hash Table)
+// ========================================
+
+// Simple hash table for storing node pointers
+#define HASH_TABLE_SIZE 100
+
+struct HashNode {
+    struct SLLNode* node;
+    struct HashNode* next;
+};
+
+struct HashTable {
+    struct HashNode* buckets[HASH_TABLE_SIZE];
+};
+
+// Hash function for node pointers
+unsigned int hash_pointer(struct SLLNode* node) {
+    // Use the address as a hash key
+    unsigned long addr = (unsigned long)node;
+    return (unsigned int)(addr % HASH_TABLE_SIZE);
+}
+
+// Create a new hash table
+struct HashTable* hash_create() {
+    struct HashTable* table = (struct HashTable*)malloc(sizeof(struct HashTable));
+    if (!table) {
+        printf("Memory allocation error\n");
+        exit(1);
+    }
+    for (int i = 0; i < HASH_TABLE_SIZE; i++) {
+        table->buckets[i] = NULL;
+    }
+    return table;
+}
+
+// Insert a node pointer into the hash table
+void hash_insert(struct HashTable* table, struct SLLNode* node) {
+    unsigned int index = hash_pointer(node);
+
+    struct HashNode* new_entry = (struct HashNode*)malloc(sizeof(struct HashNode));
+    if (!new_entry) {
+        printf("Memory allocation error\n");
+        exit(1);
+    }
+
+    new_entry->node = node;
+    new_entry->next = table->buckets[index];
+    table->buckets[index] = new_entry;
+}
+
+// Check if a node pointer exists in the hash table
+int hash_contains(struct HashTable* table, struct SLLNode* node) {
+    unsigned int index = hash_pointer(node);
+
+    struct HashNode* current = table->buckets[index];
+    while (current != NULL) {
+        if (current->node == node) {
+            return 1;
+        }
+        current = current->next;
+    }
+    return 0;
+}
+
+// Free the hash table
+void hash_destroy(struct HashTable* table) {
+    for (int i = 0; i < HASH_TABLE_SIZE; i++) {
+        struct HashNode* current = table->buckets[i];
+        while (current != NULL) {
+            struct HashNode* next = current->next;
+            free(current);
+            current = next;
+        }
+    }
+    free(table);
+}
+
+// Find intersection of two linked lists using hash table
+//
+// Algorithm:
+//   1. Create a hash table
+//   2. Traverse list A and insert all node addresses into hash table
+//   3. Traverse list B and check if each node is in the hash table
+//   4. First match is the intersection point
+//
+// Time complexity: O(m + n) where m, n are list lengths
+// Space complexity: O(m) for hash table storing list A
+//
+// Returns the intersection node, or NULL if no intersection
+struct SLLNode* find_intersection(struct SLL* listA, struct SLL* listB) {
+    if (listA == NULL || listB == NULL) {
+        return NULL;
+    }
+    if (listA->head == NULL || listB->head == NULL) {
+        return NULL;
+    }
+
+    // Create hash table
+    struct HashTable* table = hash_create();
+
+    // Insert all nodes from list A into hash table
+    struct SLLNode* current = listA->head;
+    while (current != NULL) {
+        hash_insert(table, current);
+        current = current->next;
+    }
+
+    // Check each node from list B
+    current = listB->head;
+    while (current != NULL) {
+        if (hash_contains(table, current)) {
+            // Found intersection!
+            hash_destroy(table);
+            return current;
+        }
+        current = current->next;
+    }
+
+    // No intersection found
+    hash_destroy(table);
+    return NULL;
+}
+
+// Helper function to create two intersecting lists for testing
+// List A: 1 -> 2 -> 3 --------->
+//                                 8 -> 9 -> 10 -> NULL
+//                                /
+// List B: 4 -> 5 -> 6 -> 7 ---->
+void create_intersecting_lists(struct SLL** listA, struct SLL** listB, struct SLLNode** intersection) {
+    *listA = sll_create();
+    *listB = sll_create();
+
+    // Create list A: 1 -> 2 -> 3
+    struct SLLNode* a1 = sll_createNode(1);
+    struct SLLNode* a2 = sll_createNode(2);
+    struct SLLNode* a3 = sll_createNode(3);
+
+    (*listA)->head = a1;
+    a1->next = a2;
+    a2->next = a3;
+
+    // Create list B: 4 -> 5 -> 6 -> 7
+    struct SLLNode* b1 = sll_createNode(4);
+    struct SLLNode* b2 = sll_createNode(5);
+    struct SLLNode* b3 = sll_createNode(6);
+    struct SLLNode* b4 = sll_createNode(7);
+
+    (*listB)->head = b1;
+    b1->next = b2;
+    b2->next = b3;
+    b3->next = b4;
+
+    // Create common part: 8 -> 9 -> 10
+    struct SLLNode* common1 = sll_createNode(8);
+    struct SLLNode* common2 = sll_createNode(9);
+    struct SLLNode* common3 = sll_createNode(10);
+
+    common1->next = common2;
+    common2->next = common3;
+    common3->next = NULL;
+
+    // Connect both lists to common part
+    a3->next = common1;  // List A ends at common part
+    b4->next = common1;  // List B ends at common part
+
+    *intersection = common1;
+}
+
+// Print list up to a certain node (to avoid infinite loops with intersections)
+void print_list_until(struct SLLNode* head, struct SLLNode* stop, int max_nodes) {
+    struct SLLNode* current = head;
+    int count = 0;
+
+    while (current != NULL && count < max_nodes) {
+        printf("%d -> ", current->data);
+        if (current == stop) {
+            printf("[intersection] -> ...\n");
+            return;
+        }
+        current = current->next;
+        count++;
+    }
+    printf("NULL\n");
+}
+
+// Test function for list intersection
+void test_find_intersection() {
+    printf("=== Testing List Intersection (Hash Table) ===\n\n");
+
+    struct SLL* listA;
+    struct SLL* listB;
+    struct SLLNode* expected_intersection;
+
+    // Test 1: Lists with intersection
+    printf("Test 1: Lists with intersection\n");
+    printf("----------------------------------\n");
+    create_intersecting_lists(&listA, &listB, &expected_intersection);
+
+    printf("List A: ");
+    print_list_until(listA->head, NULL, 10);
+
+    printf("List B: ");
+    print_list_until(listB->head, NULL, 10);
+
+    struct SLLNode* intersection = find_intersection(listA, listB);
+
+    if (intersection != NULL) {
+        printf("Intersection found at node with data: %d\n", intersection->data);
+        printf("Expected intersection data: %d\n", expected_intersection->data);
+
+        if (intersection == expected_intersection) {
+            printf("✓ Correct intersection detected!\n");
+        }
+    } else {
+        printf("No intersection found\n");
+    }
+
+    // Clean up (be careful with shared nodes)
+    // Don't use sll_destroy as it would free shared nodes twice
+    free(listA);
+    free(listB);
+
+    // Test 2: Lists without intersection
+    printf("\nTest 2: Lists without intersection\n");
+    printf("----------------------------------\n");
+
+    listA = sll_create();
+    listB = sll_create();
+
+    // Create separate lists
+    for (int i = 1; i <= 3; i++) {
+        sll_insert(listA, i - 1, i * 10);
+        sll_insert(listB, i - 1, i * 20);
+    }
+
+    printf("List A: ");
+    sll_print(listA);
+
+    printf("List B: ");
+    sll_print(listB);
+
+    intersection = find_intersection(listA, listB);
+
+    if (intersection != NULL) {
+        printf("Intersection found at node with data: %d\n", intersection->data);
+    } else {
+        printf("No intersection found ✓\n");
+    }
+
+    sll_destroy(listA);
+    sll_destroy(listB);
+
+    printf("\n--- How Hash Table Method Works ---\n");
+    printf("List A: 1 → 2 → 3 →        \\\n");
+    printf("                             8 → 9 → 10 → NULL\n");
+    printf("                            /\n");
+    printf("List B: 4 → 5 → 6 → 7 →\n\n");
+
+    printf("Step 1: Traverse List A, add all node addresses to hash table\n");
+    printf("  Hash table: {addr(1), addr(2), addr(3), addr(8), addr(9), addr(10)}\n\n");
+
+    printf("Step 2: Traverse List B, check if each node is in hash table\n");
+    printf("  Check addr(4): Not in table\n");
+    printf("  Check addr(5): Not in table\n");
+    printf("  Check addr(6): Not in table\n");
+    printf("  Check addr(7): Not in table\n");
+    printf("  Check addr(8): Found in table! ← Intersection\n\n");
+
+    printf("Time Complexity: O(m + n) - traverse both lists once\n");
+    printf("Space Complexity: O(m) - hash table stores list A\n");
+}
+
 // Test function to verify the two-pointer technique
 void test_search_from_end() {
     printf("=== Testing Search From End (Two-Pointer Technique) ===\n\n");
@@ -575,6 +848,7 @@ int main() {
         printf("1. Search from end (two-pointer)\n");
         printf("2. Cycle detection (Floyd's algorithm)\n");
         printf("3. Reverse list (recursive)\n");
+        printf("4. Find intersection (hash table)\n");
         printf("x. Exit\n");
         printf("Enter choice: ");
         scanf(" %c", &choice);
@@ -587,6 +861,8 @@ int main() {
             test_cycle_detection();
         } else if (choice == '3') {
             test_reverse_recursive();
+        } else if (choice == '4') {
+            test_find_intersection();
         } else {
             printf("Invalid choice\n");
         }
