@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "stacks_queues.h"
 
 // ============================================================
 // DATA STRUCTURES
@@ -554,6 +555,223 @@ void rb_traverse_postorder(RBTree* tree, RBNode* x) {
 }
 
 // ============================================================
+// DEPTH-FIRST SEARCH (DFS) AND BREADTH-FIRST SEARCH (BFS)
+// ============================================================
+
+/**
+ * Iterative Depth-First Search using a stack
+ *
+ * @param tree          Pointer to the tree
+ * @param root          Starting node for DFS
+ * @param search_value  Value to search for (-1 to just traverse and print)
+ * @return              Pointer to node if found, NULL otherwise
+ *
+ * Algorithm:
+ * 1. Push root onto stack
+ * 2. While stack not empty:
+ *    a. Pop node from stack
+ *    b. Visit node (if searching, check if found)
+ *    c. Push right child (will be visited later)
+ *    d. Push left child (will be visited sooner)
+ *
+ * Result: Preorder traversal (Root -> Left -> Right)
+ * Note: We push right before left so left is visited first (stack is LIFO)
+ *
+ * Time: O(n) - visits each node once (or until found if searching)
+ * Space: O(h) - stack depth equals height
+ *
+ * Use cases:
+ * - Tree traversal without recursion
+ * - Search for a value in the tree
+ * - Detect cycles in graphs
+ * - Topological sorting
+ * - Path finding
+ */
+RBNode* rb_traverse_dfs_iterative(RBTree* tree, RBNode* root, int search_value) {
+    if (root == tree->nil) {
+        return NULL;
+    }
+
+    // Create stack to hold nodes
+    ListStack* stack = list_stack_create();
+
+    // Push root to start
+    list_stack_push(stack, (long)root);  // Store pointer as long
+
+    bool is_search = (search_value != -1);
+    if (!is_search) {
+        printf("DFS (Iterative): ");
+    }
+
+    RBNode* found = NULL;
+
+    while (!list_stack_is_empty(stack)) {
+        // Pop node from stack
+        long node_long = list_stack_pop(stack);
+        RBNode* node = (RBNode*)node_long;
+
+        // Check if this is the node we're searching for
+        if (is_search && node->data == search_value) {
+            found = node;
+            break;  // Found it, exit early
+        }
+
+        // Visit node (only print if traversing, not searching)
+        if (!is_search) {
+            printf("%d(%s) ", node->data, node->color == RED ? "R" : "B");
+        }
+
+        // Push right child first (LIFO - will be visited later)
+        if (node->right != tree->nil) {
+            list_stack_push(stack, (long)node->right);
+        }
+
+        // Push left child second (will be visited sooner)
+        if (node->left != tree->nil) {
+            list_stack_push(stack, (long)node->left);
+        }
+    }
+
+    if (!is_search) {
+        printf("\n");
+    }
+    list_stack_destroy(stack);
+
+    return found;
+}
+
+/**
+ * Recursive Depth-First Search (general form)
+ *
+ * @param tree          Pointer to the tree
+ * @param node          Current node being visited
+ * @param search_value  Value to search for (-1 to just traverse and print)
+ * @return              Pointer to node if found, NULL otherwise
+ *
+ * This is the general recursive DFS pattern.
+ * The specific order (preorder, inorder, postorder) depends on when you visit the node.
+ *
+ * This implementation does preorder (Root -> Left -> Right)
+ *
+ * Time: O(n) - visits each node once (or until found if searching)
+ * Space: O(h) - recursion stack depth equals height
+ */
+RBNode* rb_traverse_dfs_recursive(RBTree* tree, RBNode* node, int search_value) {
+    if (node == tree->nil) {
+        return NULL;
+    }
+
+    bool is_search = (search_value != -1);
+
+    // Check if this is the node we're searching for
+    if (is_search && node->data == search_value) {
+        return node;  // Found it
+    }
+
+    // Visit node (preorder position - only print if traversing)
+    if (!is_search) {
+        printf("%d(%s) ", node->data, node->color == RED ? "R" : "B");
+    }
+
+    // Recurse on left subtree
+    RBNode* found = rb_traverse_dfs_recursive(tree, node->left, search_value);
+    if (found != NULL) {
+        return found;  // Found in left subtree
+    }
+
+    // Recurse on right subtree
+    return rb_traverse_dfs_recursive(tree, node->right, search_value);
+}
+
+/**
+ * Breadth-First Search (Level-Order Traversal) using a queue
+ *
+ * @param tree          Pointer to the tree
+ * @param root          Starting node for BFS
+ * @param search_value  Value to search for (-1 to just traverse and print)
+ * @return              Pointer to node if found, NULL otherwise
+ *
+ * Algorithm:
+ * 1. Enqueue root
+ * 2. While queue not empty:
+ *    a. Dequeue node
+ *    b. Visit node (if searching, check if found)
+ *    c. Enqueue left child
+ *    d. Enqueue right child
+ *
+ * Result: Level-order traversal (visits all nodes at depth d before depth d+1)
+ *
+ * Example tree:      20
+ *                   /  \
+ *                 10    30
+ *                / \    / \
+ *               5  15  25  35
+ *
+ * BFS output: 20 10 30 5 15 25 35 (level by level)
+ *
+ * Time: O(n) - visits each node once (or until found if searching)
+ * Space: O(w) - queue size equals maximum width of tree
+ *
+ * Use cases:
+ * - Level-order tree printing
+ * - Search for a value in the tree
+ * - Find shortest path in unweighted graph
+ * - Find all nodes at distance k from root
+ * - Serialize tree level-by-level
+ */
+RBNode* rb_traverse_bfs(RBTree* tree, RBNode* root, int search_value) {
+    if (root == tree->nil) {
+        return NULL;
+    }
+
+    // Create queue to hold nodes
+    ListQueue* queue = list_queue_create();
+
+    // Enqueue root to start
+    list_queue_enqueue(queue, (long)root);  // Store pointer as long
+
+    bool is_search = (search_value != -1);
+    if (!is_search) {
+        printf("BFS (Level-order): ");
+    }
+
+    RBNode* found = NULL;
+
+    while (!list_queue_is_empty(queue)) {
+        // Dequeue node from front
+        RBNode* node = (RBNode*)(long)list_queue_dequeue(queue);
+
+        // Check if this is the node we're searching for
+        if (is_search && node->data == search_value) {
+            found = node;
+            break;  // Found it, exit early
+        }
+
+        // Visit node (only print if traversing, not searching)
+        if (!is_search) {
+            printf("%d(%s) ", node->data, node->color == RED ? "R" : "B");
+        }
+
+        // Enqueue left child (will be visited before right due to FIFO)
+        if (node->left != tree->nil) {
+            list_queue_enqueue(queue, (long)node->left);
+        }
+
+        // Enqueue right child
+        if (node->right != tree->nil) {
+            list_queue_enqueue(queue, (long)node->right);
+        }
+    }
+
+    if (!is_search) {
+        printf("\n");
+    }
+    list_queue_destroy(queue);
+
+    return found;
+}
+
+// ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
 
@@ -773,6 +991,71 @@ void test_rb_tree_deletion() {
     rb_destroy(tree);
 }
 
+void test_rb_tree_dfs_bfs() {
+    printf("\n=== Testing DFS and BFS Traversals ===\n");
+    RBTree* tree = rb_create_tree();
+
+    int values[] = {50, 30, 70, 20, 40, 60, 80, 10, 25, 35, 45};
+    int n = sizeof(values) / sizeof(values[0]);
+
+    printf("\nBuilding tree with values: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", values[i]);
+        rb_insert_node(tree, values[i]);
+    }
+    printf("\n");
+
+    rb_display_tree(tree, NULL, "\nTree structure:");
+
+    printf("\n=== Recursive Traversals (for comparison) ===\n");
+    printf("Inorder (L-Root-R):   ");
+    rb_traverse_inorder(tree, tree->root);
+    printf("\n");
+
+    printf("Preorder (Root-L-R):  ");
+    rb_traverse_preorder(tree, tree->root);
+    printf("\n");
+
+    printf("Postorder (L-R-Root): ");
+    rb_traverse_postorder(tree, tree->root);
+    printf("\n");
+
+    printf("\n=== Depth-First Search ===\n");
+    printf("DFS Recursive:        ");
+    rb_traverse_dfs_recursive(tree, tree->root, -1);  // -1 = traverse mode
+    printf("\n");
+
+    rb_traverse_dfs_iterative(tree, tree->root, -1);  // -1 = traverse mode
+
+    printf("\n=== Breadth-First Search ===\n");
+    rb_traverse_bfs(tree, tree->root, -1);  // -1 = traverse mode
+
+    printf("\n=== Comparison ===\n");
+    printf("Notice:\n");
+    printf("- DFS Recursive = Preorder (Root -> Left -> Right)\n");
+    printf("- DFS Iterative = Preorder (using stack instead of recursion)\n");
+    printf("- BFS = Level-order (visits all nodes level by level)\n");
+    printf("- Inorder = Sorted order (for BST)\n");
+
+    printf("\n=== Search Tests ===\n");
+    int search_vals[] = {35, 80, 99};  // Two exist, one doesn't
+    for (int i = 0; i < 3; i++) {
+        int val = search_vals[i];
+        printf("\nSearching for %d:\n", val);
+
+        RBNode* found = rb_traverse_dfs_iterative(tree, tree->root, val);
+        printf("  DFS Iterative: %s\n", found ? "Found" : "Not found");
+
+        found = rb_traverse_dfs_recursive(tree, tree->root, val);
+        printf("  DFS Recursive: %s\n", found ? "Found" : "Not found");
+
+        found = rb_traverse_bfs(tree, tree->root, val);
+        printf("  BFS:           %s\n", found ? "Found" : "Not found");
+    }
+
+    rb_destroy(tree);
+}
+
 void test_rb_tree_visual() {
     printf("\n=== Visual Red-Black Tree - Step-by-Step Insertion ===\n");
     RBTree* tree = rb_create_tree();
@@ -876,8 +1159,9 @@ int main() {
         printf("1. Test Basic Operations (Insert, Traversals)\n");
         printf("2. Test Search\n");
         printf("3. Test Deletion\n");
-        printf("4. Visual Step-by-Step Insertion\n");
-        printf("5. Visual Tree Traversal\n");
+        printf("4. Test DFS and BFS Traversals\n");
+        printf("5. Visual Step-by-Step Insertion\n");
+        printf("6. Visual Tree Traversal\n");
         printf("x. Exit\n");
         printf("Enter choice: ");
         scanf(" %c", &choice);
@@ -895,8 +1179,10 @@ int main() {
         } else if (choice == '3') {
             test_rb_tree_deletion();
         } else if (choice == '4') {
-            test_rb_tree_visual();
+            test_rb_tree_dfs_bfs();
         } else if (choice == '5') {
+            test_rb_tree_visual();
+        } else if (choice == '6') {
             test_rb_tree_traversal_visual();
         } else {
             printf("Invalid choice\n");

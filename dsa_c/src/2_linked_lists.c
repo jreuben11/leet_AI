@@ -26,7 +26,7 @@ void sll_destroy(struct SLL* list) {
     free(list);
 }
 
-struct SLLNode* sll_createNode(int data) {
+struct SLLNode* sll_createNode(long data) {
     struct SLLNode* newNode = (struct SLLNode*)malloc(sizeof(struct SLLNode));
     if (!newNode) {
         printf("Memory allocation error\n");
@@ -37,7 +37,7 @@ struct SLLNode* sll_createNode(int data) {
     return newNode;
 }
 
-void sll_insert(struct SLL* list, int index, int new_data) {
+void sll_insert(struct SLL* list, int index, long new_data) {
     if (list == NULL) {
         printf("List does not exist\n");
         return;
@@ -124,7 +124,7 @@ void sll_print(struct SLL* list) {
     }
     struct SLLNode* node = list->head;
     while (node != NULL) {
-        printf("%d -> ", node->data);
+        printf("%ld -> ", node->data);
         node = node->next;
     }
     printf("NULL\n");
@@ -209,7 +209,7 @@ int sll_find(struct SLL* list, int value) {
     return -1; // Not found
 }
 
-void sll_insert_sorted(struct SLL* list, int value) {
+void sll_insert_sorted(struct SLL* list, long value) {
     if (list == NULL) {
         printf("List does not exist\n");
         return;

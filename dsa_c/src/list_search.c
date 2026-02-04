@@ -82,7 +82,7 @@ void demonstrate_search(struct SLL* list, int n) {
 
     struct SLLNode* node = search_from_end(list, n);
     if (node != NULL) {
-        printf("The %dth node from the end has data: %d\n", n, node->data);
+        printf("The %dth node from the end has data: %ld\n", n, node->data);
     } else {
         printf("Could not find %dth node from end\n", n);
     }
@@ -250,7 +250,7 @@ void create_cycle_at(struct SLL* list, int position) {
     // Create cycle: tail->next points to cycle_node
     if (cycle_node != NULL) {
         tail->next = cycle_node;
-        printf("Cycle created: tail->next points to node at position %d (data=%d)\n",
+        printf("Cycle created: tail->next points to node at position %d (data=%ld)\n",
                position, cycle_node->data);
     } else {
         printf("Position %d out of bounds (list has %d nodes)\n", position, count + 1);
@@ -324,7 +324,7 @@ void print_with_cycle_detection(struct SLL* list) {
     int max_print = 20; // Limit output to avoid infinite printing
 
     while (count < max_print) {
-        printf("%d -> ", current->data);
+        printf("%ld -> ", current->data);
         current = current->next;
         count++;
 
@@ -578,7 +578,7 @@ void print_list_until(struct SLLNode* head, struct SLLNode* stop, int max_nodes)
     int count = 0;
 
     while (current != NULL && count < max_nodes) {
-        printf("%d -> ", current->data);
+        printf("%ld -> ", current->data);
         if (current == stop) {
             printf("[intersection] -> ...\n");
             return;
@@ -611,8 +611,8 @@ void test_find_intersection() {
     struct SLLNode* intersection = find_intersection(listA, listB);
 
     if (intersection != NULL) {
-        printf("Intersection found at node with data: %d\n", intersection->data);
-        printf("Expected intersection data: %d\n", expected_intersection->data);
+        printf("Intersection found at node with data: %ld\n", intersection->data);
+        printf("Expected intersection data: %ld\n", expected_intersection->data);
 
         if (intersection == expected_intersection) {
             printf("✓ Correct intersection detected!\n");
@@ -648,7 +648,7 @@ void test_find_intersection() {
     intersection = find_intersection(listA, listB);
 
     if (intersection != NULL) {
-        printf("Intersection found at node with data: %d\n", intersection->data);
+        printf("Intersection found at node with data: %ld\n", intersection->data);
     } else {
         printf("No intersection found ✓\n");
     }
@@ -752,7 +752,7 @@ void test_cycle_detection() {
     printf("\nTest 4: Find cycle start\n");
     struct SLLNode* start = find_cycle_start(list);
     if (start != NULL) {
-        printf("Cycle starts at node with data: %d\n", start->data);
+        printf("Cycle starts at node with data: %ld\n", start->data);
     }
 
     printf("\nTest 5: Get cycle length\n");

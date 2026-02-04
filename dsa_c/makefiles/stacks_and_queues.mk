@@ -17,7 +17,7 @@ $(OBJ): $(SRCDIR)/2_linked_lists.c $(SRCDIR)/2_linked_lists.h
 	$(CC) $(CFLAGS) -c -DSKIP_MAIN $< -o $@
 
 # Link stacks_and_queues with linked_lists object file
-$(TARGET): $(SRCDIR)/3_stacks_and_queues.c $(OBJ) $(SRCDIR)/2_linked_lists.h
+$(TARGET): $(SRCDIR)/3_stacks_and_queues.c $(OBJ) $(SRCDIR)/2_linked_lists.h $(SRCDIR)/stacks_queues.h
 	$(CC) $(CFLAGS) $(SRCDIR)/3_stacks_and_queues.c $(OBJ) -o $@
 
 clean:

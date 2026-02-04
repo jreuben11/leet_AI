@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "2_linked_lists.h"
+#include "stacks_queues.h"
 
 // ============================================================
 // 1. STACK USING DYNAMIC ARRAY
@@ -116,10 +117,6 @@ void array_stack_destroy(ArrayStack* stack) {
 // 2. STACK USING LINKED LIST
 // ============================================================
 
-typedef struct {
-    struct SLL* list;  // Using SLL from 2_linked_lists.h
-} ListStack;
-
 // Create a new linked list-based stack
 ListStack* list_stack_create() {
     ListStack* stack = (ListStack*)malloc(sizeof(ListStack));
@@ -139,26 +136,26 @@ bool list_stack_is_empty(ListStack* stack) {
 // Push element onto list stack
 // Time Complexity: O(1) - insert at head
 // Space Complexity: O(1)
-void list_stack_push(ListStack* stack, int value) {
+void list_stack_push(ListStack* stack, long value) {
     sll_insert(stack->list, 0, value);  // Insert at head (index 0)
 }
 
 // Pop element from list stack
 // Time Complexity: O(1) - delete from head
 // Space Complexity: O(1)
-int list_stack_pop(ListStack* stack) {
+long list_stack_pop(ListStack* stack) {
     if (list_stack_is_empty(stack)) {
         printf("Stack underflow! Cannot pop from empty stack.\n");
         return -1;
     }
-    int value = stack->list->head->data;
+    long value = stack->list->head->data;
     sll_delete(stack->list, 0);  // Delete from head
     return value;
 }
 
 // Peek at top element without removing it
 // Time Complexity: O(1)
-int list_stack_peek(ListStack* stack) {
+long list_stack_peek(ListStack* stack) {
     if (list_stack_is_empty(stack)) {
         printf("Stack is empty!\n");
         return -1;
@@ -181,7 +178,7 @@ void list_stack_print(ListStack* stack) {
     printf("Stack (top to bottom): ");
     struct SLLNode* current = stack->list->head;
     while (current != NULL) {
-        printf("%d ", current->data);
+        printf("%ld ", current->data);
         current = current->next;
     }
     printf("\n");
@@ -198,11 +195,6 @@ void list_stack_destroy(ListStack* stack) {
 // ============================================================
 // 3. QUEUE USING LINKED LIST
 // ============================================================
-
-typedef struct {
-    struct SLLNode* front;  // Points to first element (for dequeue)
-    struct SLLNode* rear;   // Points to last element (for enqueue)
-} ListQueue;
 
 // Create a new linked list-based queue
 ListQueue* list_queue_create() {
@@ -224,7 +216,7 @@ bool list_queue_is_empty(ListQueue* queue) {
 // Enqueue element to the queue
 // Time Complexity: O(1) - add at rear
 // Space Complexity: O(1)
-void list_queue_enqueue(ListQueue* queue, int value) {
+void list_queue_enqueue(ListQueue* queue, long value) {
     struct SLLNode* newNode = sll_createNode(value);
 
     // If queue is empty, both front and rear point to new node
@@ -241,14 +233,14 @@ void list_queue_enqueue(ListQueue* queue, int value) {
 // Dequeue element from the queue
 // Time Complexity: O(1) - remove from front
 // Space Complexity: O(1)
-int list_queue_dequeue(ListQueue* queue) {
+long list_queue_dequeue(ListQueue* queue) {
     if (list_queue_is_empty(queue)) {
         printf("Queue underflow! Cannot dequeue from empty queue.\n");
         return -1;
     }
 
     struct SLLNode* temp = queue->front;
-    int value = temp->data;
+    long value = temp->data;
     queue->front = queue->front->next;
 
     // If queue becomes empty, update rear to NULL
@@ -262,7 +254,7 @@ int list_queue_dequeue(ListQueue* queue) {
 
 // Peek at front element without removing it
 // Time Complexity: O(1)
-int list_queue_peek(ListQueue* queue) {
+long list_queue_peek(ListQueue* queue) {
     if (list_queue_is_empty(queue)) {
         printf("Queue is empty!\n");
         return -1;
@@ -291,7 +283,7 @@ void list_queue_print(ListQueue* queue) {
     printf("Queue (front to rear): ");
     struct SLLNode* current = queue->front;
     while (current != NULL) {
-        printf("%d ", current->data);
+        printf("%ld ", current->data);
         current = current->next;
     }
     printf("\n");
@@ -660,11 +652,11 @@ void test_list_stack() {
     list_stack_print(stack);
     printf("Size: %d\n", list_stack_size(stack));
 
-    printf("\nPeek: %d\n", list_stack_peek(stack));
+    printf("\nPeek: %ld\n", list_stack_peek(stack));
 
     printf("\nPopping 2 elements:\n");
-    printf("Popped: %d\n", list_stack_pop(stack));
-    printf("Popped: %d\n", list_stack_pop(stack));
+    printf("Popped: %ld\n", list_stack_pop(stack));
+    printf("Popped: %ld\n", list_stack_pop(stack));
 
     list_stack_print(stack);
     printf("Size: %d\n", list_stack_size(stack));
@@ -692,11 +684,11 @@ void test_list_queue() {
     list_queue_print(queue);
     printf("Size: %d\n", list_queue_size(queue));
 
-    printf("\nPeek front: %d\n", list_queue_peek(queue));
+    printf("\nPeek front: %ld\n", list_queue_peek(queue));
 
     printf("\nDequeuing 2 elements:\n");
-    printf("Dequeued: %d\n", list_queue_dequeue(queue));
-    printf("Dequeued: %d\n", list_queue_dequeue(queue));
+    printf("Dequeued: %ld\n", list_queue_dequeue(queue));
+    printf("Dequeued: %ld\n", list_queue_dequeue(queue));
 
     list_queue_print(queue);
     printf("Size: %d\n", list_queue_size(queue));
@@ -708,7 +700,7 @@ void test_list_queue() {
 
     printf("\nDequeuing all remaining elements:\n");
     while (!list_queue_is_empty(queue)) {
-        printf("Dequeued: %d\n", list_queue_dequeue(queue));
+        printf("Dequeued: %ld\n", list_queue_dequeue(queue));
     }
 
     list_queue_destroy(queue);
@@ -847,6 +839,7 @@ void test_reverse_stack() {
 // MAIN
 // ============================================================
 
+#ifndef SKIP_MAIN
 int main() {
     char choice;
 
@@ -889,3 +882,4 @@ int main() {
 
     return 0;
 }
+#endif  // SKIP_MAIN
