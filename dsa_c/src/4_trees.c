@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 #include "stacks_queues.h"
 
 // ============================================================
@@ -319,6 +320,107 @@ void rb_insert_node(RBTree* tree, int data) {
     rb_fix_insert_violations(tree, new_node);
 }
 
+/**
+ * Helper function: Convert sorted array to balanced BST recursively
+ *
+ * @param tree   Pointer to the tree
+ * @param arr    Sorted array of integers
+ * @param start  Starting index of current subarray
+ * @param end    Ending index of current subarray
+ * @return       Root node of the created subtree
+ *
+ * Algorithm:
+ * 1. Base case: if start > end, return NIL
+ * 2. Find middle element: mid = (start + end) / 2
+ * 3. Create node with arr[mid] as root
+ * 4. Recursively build left subtree from arr[start...mid-1]
+ * 5. Recursively build right subtree from arr[mid+1...end]
+ *
+ * This creates a height-balanced BST with O(log n) height.
+ *
+ * Example: arr = [1, 2, 3, 4, 5, 6, 7]
+ *          Creates:      4
+ *                       / \
+ *                      2   6
+ *                     / \ / \
+ *                    1  3 5  7
+ *
+ * Time: O(n) - visits each element once
+ * Space: O(log n) - recursion stack for balanced tree
+ */
+RBNode* rb_sorted_array_to_bst_helper(RBTree* tree, int arr[], int start, int end) {
+    // Base case: empty subarray
+    if (start > end) {
+        return tree->nil;
+    }
+
+    // Find middle element
+    int mid = start + (end - start) / 2;  // Avoids overflow
+
+    // Create node with middle element
+    RBNode* node = rb_create_node(tree, arr[mid]);
+
+    // Recursively construct left subtree from left half
+    node->left = rb_sorted_array_to_bst_helper(tree, arr, start, mid - 1);
+    if (node->left != tree->nil) {
+        node->left->parent = node;
+    }
+
+    // Recursively construct right subtree from right half
+    node->right = rb_sorted_array_to_bst_helper(tree, arr, mid + 1, end);
+    if (node->right != tree->nil) {
+        node->right->parent = node;
+    }
+
+    return node;
+}
+
+/**
+ * Create a balanced BST from a sorted array
+ *
+ * @param arr   Sorted array of integers (in ascending order)
+ * @param size  Number of elements in the array
+ * @return      Pointer to newly created tree
+ *
+ * Creates a height-balanced Binary Search Tree from a sorted array
+ * by recursively selecting middle elements as roots.
+ *
+ * Note: This creates a standard BST structure but uses RBNode types.
+ * The tree is NOT a valid Red-Black tree (colors may not satisfy RB properties).
+ * For demonstration of balanced tree construction from sorted data.
+ *
+ * Example:
+ *   Input: [10, 20, 30, 40, 50, 60, 70]
+ *   Creates a balanced BST with height = log(7) ≈ 3
+ *
+ * Time: O(n) - creates one node per array element
+ * Space: O(log n) - recursion depth for balanced tree
+ *
+ * Use cases:
+ * - Initialize balanced search tree from sorted data
+ * - Convert sorted list to tree for faster searches
+ * - Demonstrate balanced tree construction
+ */
+RBTree* rb_create_from_sorted_array(int arr[], int size) {
+    if (size <= 0) {
+        return NULL;
+    }
+
+    // Create new tree
+    RBTree* tree = rb_create_tree();
+
+    // Build balanced BST from sorted array
+    tree->root = rb_sorted_array_to_bst_helper(tree, arr, 0, size - 1);
+
+    // Set root's parent to NIL
+    if (tree->root != tree->nil) {
+        tree->root->parent = tree->nil;
+        tree->root->color = BLACK;  // Root should be BLACK
+    }
+
+    return tree;
+}
+
 // ============================================================
 // RED-BLACK TREE DELETION
 // ============================================================
@@ -458,6 +560,102 @@ RBNode* rb_search(RBTree* tree, RBNode* x, int data) {
     } else {
         return rb_search(tree, x->right, data);
     }
+}
+
+/**
+ * Count the total number of nodes in the tree
+ *
+ * @param tree  Pointer to the tree
+ * @param node  Current node being counted
+ * @return      Total number of nodes in subtree rooted at node
+ *
+ * Algorithm:
+ * - Base case: If node is NIL, return 0
+ * - Recursive case: Return 1 (current node) + count(left) + count(right)
+ *
+ * Example tree:     20
+ *                  /  \
+ *                10    30
+ *               /  \
+ *              5   15
+ * Count: 5 nodes total
+ *
+ * Time: O(n) - visits each node exactly once
+ * Space: O(h) - recursion stack depth, h = height
+ *
+ * Use cases:
+ * - Get total size of tree
+ * - Verify tree construction
+ * - Calculate tree statistics
+ */
+int rb_count_nodes(RBTree* tree, RBNode* node) {
+    // Base case: NIL node contributes 0 nodes
+    if (node == tree->nil) {
+        return 0;
+    }
+
+    // Recursive case: 1 (current) + left subtree + right subtree
+    return 1 + rb_count_nodes(tree, node->left) + rb_count_nodes(tree, node->right);
+}
+
+/**
+ * Find the Lowest Common Ancestor (LCA) of two nodes
+ *
+ * @param tree  Pointer to the tree
+ * @param root  Root node to start search from
+ * @param n1    First value to find
+ * @param n2    Second value to find
+ * @return      Pointer to LCA node, or NIL if one/both values not found
+ *
+ * The LCA is the lowest (deepest) node that has both n1 and n2 as descendants.
+ * A node can be a descendant of itself.
+ *
+ * Algorithm for BST:
+ * - If both n1 and n2 are smaller than root, LCA is in left subtree
+ * - If both n1 and n2 are greater than root, LCA is in right subtree
+ * - Otherwise, root is the LCA (one value on left, one on right, or root is one of them)
+ *
+ * Example tree:     20
+ *                  /  \
+ *                10    30
+ *               /  \   /  \
+ *              5   15 25  35
+ *
+ * LCA(5, 15) = 10
+ * LCA(5, 30) = 20
+ * LCA(25, 35) = 30
+ * LCA(10, 15) = 10 (node can be ancestor of itself)
+ *
+ * Time: O(h) - where h is height (O(log n) for balanced tree)
+ * Space: O(h) - recursion stack depth
+ *
+ * Use cases:
+ * - Find common ancestor
+ * - Calculate distance between nodes
+ * - Tree navigation algorithms
+ */
+RBNode* rb_find_lca(RBTree* tree, RBNode* root, int n1, int n2) {
+    // Base case: empty tree
+    if (root == tree->nil) {
+        return tree->nil;
+    }
+
+    // If both n1 and n2 are smaller than root, LCA is in left subtree
+    if (n1 < root->data && n2 < root->data) {
+        return rb_find_lca(tree, root->left, n1, n2);
+    }
+
+    // If both n1 and n2 are greater than root, LCA is in right subtree
+    if (n1 > root->data && n2 > root->data) {
+        return rb_find_lca(tree, root->right, n1, n2);
+    }
+
+    // Otherwise, root is the LCA
+    // This handles three cases:
+    // 1. One value is on left, one on right
+    // 2. Root equals n1 or n2
+    // 3. n1 and n2 are equal and equal to root
+    return root;
 }
 
 // ============================================================
@@ -776,6 +974,19 @@ RBNode* rb_traverse_bfs(RBTree* tree, RBNode* root, int search_value) {
 // ============================================================
 
 // Get height of tree
+/**
+ * Compute the height of the tree recursively
+ *
+ * @param tree  Pointer to the tree
+ * @param x     Current node
+ * @return      Height of the subtree rooted at x
+ *
+ * Height is defined as the number of edges on the longest path from node to a leaf.
+ * A single node has height 1, an empty tree has height 0.
+ *
+ * Time: O(n) - visits each node once
+ * Space: O(h) - recursion stack depth
+ */
 int rb_height(RBTree* tree, RBNode* x) {
     if (x == tree->nil) {
         return 0;
@@ -785,6 +996,76 @@ int rb_height(RBTree* tree, RBNode* x) {
     int right_height = rb_height(tree, x->right);
 
     return 1 + (left_height > right_height ? left_height : right_height);
+}
+
+/**
+ * Helper function: Count nodes at a specific level
+ *
+ * @param tree   Pointer to the tree
+ * @param node   Current node
+ * @param level  Target level (1 = root level)
+ * @return       Number of nodes at the specified level
+ */
+static int rb_count_nodes_at_level(RBTree* tree, RBNode* node, int level) {
+    if (node == tree->nil) {
+        return 0;
+    }
+
+    if (level == 1) {
+        return 1;  // This node is at the target level
+    }
+
+    // Recursively count nodes at level-1 in left and right subtrees
+    return rb_count_nodes_at_level(tree, node->left, level - 1) +
+           rb_count_nodes_at_level(tree, node->right, level - 1);
+}
+
+/**
+ * Compute the maximum width of the tree
+ *
+ * @param tree  Pointer to the tree
+ * @param root  Root node of the tree
+ * @return      Maximum width (maximum number of nodes at any level)
+ *
+ * Width at a level is the number of nodes at that level.
+ * Maximum width is the maximum number of nodes across all levels.
+ *
+ * Example tree:     20
+ *                  /  \
+ *                10    30
+ *               /  \
+ *              5   15
+ *
+ * Level 1: 1 node  (20)
+ * Level 2: 2 nodes (10, 30)
+ * Level 3: 2 nodes (5, 15)
+ * Maximum width: 2
+ *
+ * Time: O(n * h) - for each level, visits nodes at that level
+ * Space: O(h) - recursion stack depth
+ *
+ * Use cases:
+ * - Analyze tree balance
+ * - Calculate display width for visualization
+ * - Tree structure analysis
+ */
+int rb_width(RBTree* tree, RBNode* root) {
+    if (root == tree->nil) {
+        return 0;
+    }
+
+    int height = rb_height(tree, root);
+    int max_width = 0;
+
+    // Check width at each level
+    for (int level = 1; level <= height; level++) {
+        int width = rb_count_nodes_at_level(tree, root, level);
+        if (width > max_width) {
+            max_width = width;
+        }
+    }
+
+    return max_width;
 }
 
 // Count black nodes on path to leaf
@@ -914,6 +1195,20 @@ void test_rb_tree_basic() {
 
     printf("\nTree height: %d\n", rb_height(tree, tree->root));
     printf("Black height: %d\n", rb_black_height(tree, tree->root));
+    printf("Node count: %d\n", rb_count_nodes(tree, tree->root));
+    printf("Tree width: %d\n", rb_width(tree, tree->root));
+
+    // Test LCA
+    printf("\n=== Testing Lowest Common Ancestor ===\n");
+    int pairs[][2] = {{1, 5}, {1, 15}, {5, 15}, {25, 30}, {1, 30}};
+    for (int i = 0; i < 5; i++) {
+        RBNode* lca = rb_find_lca(tree, tree->root, pairs[i][0], pairs[i][1]);
+        if (lca != tree->nil) {
+            printf("LCA(%d, %d) = %d\n", pairs[i][0], pairs[i][1], lca->data);
+        } else {
+            printf("LCA(%d, %d) = Not found\n", pairs[i][0], pairs[i][1]);
+        }
+    }
 
     // Verify properties
     int path_black_count = -1;
@@ -1147,6 +1442,65 @@ void test_rb_tree_traversal_visual() {
     rb_destroy(tree);
 }
 
+void test_sorted_array_to_bst() {
+    printf("\n=== Testing Sorted Array to Balanced BST ===\n");
+
+    // Test case 1: Small sorted array
+    int arr1[] = {10, 20, 30, 40, 50, 60, 70};
+    int n1 = sizeof(arr1) / sizeof(arr1[0]);
+
+    printf("\nTest 1: Array = [");
+    for (int i = 0; i < n1; i++) {
+        printf("%d%s", arr1[i], i < n1 - 1 ? ", " : "");
+    }
+    printf("]\n");
+
+    RBTree* tree1 = rb_create_from_sorted_array(arr1, n1);
+
+    printf("\nCreated balanced BST:\n");
+    rb_display_tree(tree1, NULL, "Tree structure:");
+
+    printf("\nInorder traversal (should match original array):\n");
+    rb_traverse_inorder(tree1, tree1->root);
+    printf("\n");
+
+    printf("\nTree statistics:\n");
+    printf("Height: %d (balanced tree should have height ≈ log₂(%d) = %.1f)\n",
+           rb_height(tree1, tree1->root), n1, log2(n1));
+    printf("Node count: %d\n", rb_count_nodes(tree1, tree1->root));
+    printf("Tree width: %d\n", rb_width(tree1, tree1->root));
+
+    // Test case 2: Larger array
+    printf("\n\nTest 2: Larger array [1, 2, 3, ..., 15]\n");
+    int arr2[15];
+    for (int i = 0; i < 15; i++) {
+        arr2[i] = i + 1;
+    }
+
+    RBTree* tree2 = rb_create_from_sorted_array(arr2, 15);
+
+    printf("\nCreated balanced BST:\n");
+    rb_display_tree(tree2, NULL, "Tree structure:");
+
+    printf("\nTree statistics:\n");
+    printf("Height: %d (expected ≈ %.1f)\n", rb_height(tree2, tree2->root), log2(15));
+    printf("Node count: %d\n", rb_count_nodes(tree2, tree2->root));
+    printf("Tree width: %d\n", rb_width(tree2, tree2->root));
+
+    // Test LCA on the balanced tree
+    printf("\n=== Testing LCA on balanced BST ===\n");
+    int pairs[][2] = {{1, 7}, {8, 15}, {3, 12}};
+    for (int i = 0; i < 3; i++) {
+        RBNode* lca = rb_find_lca(tree2, tree2->root, pairs[i][0], pairs[i][1]);
+        if (lca != tree2->nil) {
+            printf("LCA(%d, %d) = %d\n", pairs[i][0], pairs[i][1], lca->data);
+        }
+    }
+
+    rb_destroy(tree1);
+    rb_destroy(tree2);
+}
+
 // ============================================================
 // MAIN
 // ============================================================
@@ -1162,6 +1516,7 @@ int main() {
         printf("4. Test DFS and BFS Traversals\n");
         printf("5. Visual Step-by-Step Insertion\n");
         printf("6. Visual Tree Traversal\n");
+        printf("7. Create Balanced BST from Sorted Array\n");
         printf("x. Exit\n");
         printf("Enter choice: ");
         scanf(" %c", &choice);
@@ -1184,6 +1539,8 @@ int main() {
             test_rb_tree_visual();
         } else if (choice == '6') {
             test_rb_tree_traversal_visual();
+        } else if (choice == '7') {
+            test_sorted_array_to_bst();
         } else {
             printf("Invalid choice\n");
         }

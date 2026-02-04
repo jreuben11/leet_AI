@@ -23,7 +23,7 @@ $(STACKS_OBJ): $(SRCDIR)/3_stacks_and_queues.c $(SRCDIR)/2_linked_lists.h $(SRCD
 
 # Link trees with linked_lists and stacks_queues object files
 $(TARGET): $(SRCDIR)/4_trees.c $(OBJ) $(STACKS_OBJ) $(SRCDIR)/stacks_queues.h
-	$(CC) $(CFLAGS) $(SRCDIR)/4_trees.c $(OBJ) $(STACKS_OBJ) -o $@
+	$(CC) $(CFLAGS) $(SRCDIR)/4_trees.c $(OBJ) $(STACKS_OBJ) -o $@ -lm
 
 clean:
 	rm -f $(TARGET) $(STACKS_OBJ)
