@@ -15,6 +15,7 @@ A comprehensive collection of classic data structures and algorithms implemented
   - [6. Skip Lists](#6-skip-lists)
   - [7. List Search Algorithms](#7-list-search-algorithms)
   - [8. Dynamic Programming](#8-dynamic-programming)
+  - [9. Graphs and Shortest Path Algorithms](#9-graphs-and-shortest-path-algorithms)
 - [Complexity Summary](#complexity-summary)
 
 ---
@@ -32,7 +33,8 @@ dsa_c/
 │   ├── 7_heap.c
 │   ├── skip_list.c
 │   ├── list_search.c
-│   └── dynamic_programming.c
+│   ├── dynamic_programming.c
+│   └── 9_graphs.c
 ├── makefiles/              # Build configurations
 │   ├── recursion.mk
 │   ├── linked_lists.mk
@@ -41,8 +43,9 @@ dsa_c/
 │   ├── heap.mk
 │   ├── skip_list.mk
 │   ├── list_search.mk
-│   └── dynamic_programming.mk
-├── out/                    # Compiled binaries
+│   ├── dynamic_programming.mk
+│   └── graphs.mk
+├── out/                    # Compiled binaries and visualizations
 ├── Makefile               # Master build file
 └── compile_and_run.sh     # Interactive build & run script
 ```
@@ -81,6 +84,7 @@ make rebuild
 ./out/skip_list
 ./out/list_search
 ./out/dynamic_programming
+./out/9_graphs
 ```
 
 ---
@@ -1513,7 +1517,613 @@ Q . . .    ← Queen in column 0
 
 ---
 
-## Complexity Summary
+### 9. Graphs and Shortest Path Algorithms
+
+**File:** `src/9_graphs.c`
+
+Comprehensive graph implementation with multiple representations and shortest path algorithms.
+
+#### Graph Representations
+
+**When to use Adjacency Matrix:**
+- **Dense graphs** where E ≈ V² (many edges)
+- **O(1) edge lookup** - instant check if edge exists
+- **Space: O(V²)** - always uses V×V array
+- Best for: Complete graphs, dense connectivity
+
+**When to use Adjacency List:**
+- **Sparse graphs** where E << V² (few edges)
+- **Space: O(V + E)** - only stores existing edges
+- Better for graph traversals (DFS, BFS)
+- Best for: DAGs, sparse networks, social graphs
+
+#### Shortest Path Algorithms Comparison
+
+The choice of shortest path algorithm depends on graph properties:
+
+##### 1. BFS (Breadth-First Search)
+
+**Use when:**
+- Graph is **UNWEIGHTED** (all edges have weight = 1)
+- Need guaranteed shortest path by number of edges
+
+**How it works:**
+```
+1. Start from source, explore level by level
+2. First time we reach destination = shortest path
+3. Uses queue: FIFO order ensures shortest path first
+```
+
+**Why it works:**
+- Explores nodes in order of distance from source
+- All edges equal weight, so closest = fewest edges
+- Layer-by-layer exploration guarantees optimality
+
+**Complexity:**
+- Time: **O(V + E)** - visit each vertex and edge once
+- Space: **O(V)** - queue and visited arrays
+
+**Example:** Social network - find shortest connection path
+```
+Person A → Friend → Friend → Person B  (3 hops)
+```
+
+**Key insight:** BFS explores layer-by-layer, guaranteeing shortest path in unweighted graphs.
+
+---
+
+##### 2. Dijkstra's Algorithm
+
+**Use when:**
+- Graph is **WEIGHTED** with **NON-NEGATIVE** edge weights
+- Need single-source shortest paths
+
+**How it works:**
+```
+1. Initialize: distance[source] = 0, all others = ∞
+2. Repeat:
+   a. Pick unvisited vertex u with minimum distance
+   b. For each neighbor v of u:
+      if distance[u] + weight(u,v) < distance[v]:
+         distance[v] = distance[u] + weight(u,v)  (RELAXATION)
+   c. Mark u as visited
+3. Continue until all reachable vertices processed
+```
+
+**Why it works:**
+- **Greedy approach**: Always pick closest unvisited vertex
+- Safe assumption: Won't find shorter path later (with non-negative weights!)
+- Each edge relaxed once per vertex visit
+
+**Complexity:**
+- Time: **O(V²)** with array, **O((V+E) log V)** with min-heap
+- Space: **O(V)** - distance and visited arrays
+
+**Example:** Road network with distances
+```
+City A → (5km) → City B → (3km) → City C
+City A → (10km) → City C
+Shortest: A → B → C = 8km (not direct 10km)
+```
+
+**Why NOT for negative edges?**
+- Assumes greedy choice is safe
+- Negative edge later could invalidate earlier decisions
+- Example: A→B (5), B→C (-10), A→C (1)
+  - Greedy picks A→C (1)
+  - But A→B→C = -5 is shorter!
+
+---
+
+##### 3. Bellman-Ford Algorithm
+
+**Use when:**
+- Graph is **WEIGHTED** with **POSSIBLE NEGATIVE** edge weights
+- Need to **detect negative cycles**
+- Willing to trade speed for correctness
+
+**How it works:**
+```
+1. Initialize: distance[source] = 0, all others = ∞
+2. Relax ALL edges (V-1) times:
+   For each edge (u, v):
+      if distance[u] + weight(u,v) < distance[v]:
+         distance[v] = distance[u] + weight(u,v)
+3. Check for negative cycle:
+   If ANY edge can still be relaxed, negative cycle exists
+```
+
+**Why V-1 iterations?**
+- Shortest path has at most (V-1) edges
+- Each iteration relaxes edges along shortest path
+- After (V-1) iterations, all shortest paths found
+
+**Why it handles negative weights:**
+- Doesn't make greedy choices
+- Explores all possible paths systematically
+- Relaxes edges multiple times to find true shortest path
+
+**Negative cycle detection:**
+- If after V-1 iterations, edges can still be relaxed → negative cycle
+- No shortest path exists (can loop forever decreasing distance)
+
+**Complexity:**
+- Time: **O(V × E)** - much slower than Dijkstra
+- Space: **O(V)** - distance array
+
+**Example:** Currency arbitrage detection
+```
+USD → EUR (rate: -log(1.2)) → GBP (rate: -log(0.9)) → USD (rate: -log(1.1))
+Total: negative sum = arbitrage opportunity (negative cycle)
+```
+
+---
+
+#### Algorithm Comparison Table
+
+| Feature | BFS | Dijkstra | Bellman-Ford |
+|---------|-----|----------|--------------|
+| **Edge Weights** | Unweighted only | Non-negative | Any (including negative) |
+| **Negative Edges** | N/A | ❌ Incorrect | ✅ Handles correctly |
+| **Negative Cycles** | N/A | N/A | ✅ Detects them |
+| **Time Complexity** | O(V + E) | O(V²) or O((V+E) log V) | O(V × E) |
+| **Space Complexity** | O(V) | O(V) | O(V) |
+| **Approach** | Layer-by-layer (queue) | Greedy (min distance) | Dynamic programming |
+| **Guarantees** | Shortest path (unweighted) | Shortest path (non-neg) | Shortest path or cycle detect |
+| **Best for** | Social networks, unweighted | Road networks, positive weights | Financial graphs, cycle detection |
+
+---
+
+#### Side-by-Side: BFS vs Dijkstra Algorithm Steps
+
+**Core Difference:** BFS explores by hop count, Dijkstra explores by total distance.
+
+| Step | BFS | Dijkstra |
+|------|-----|----------|
+| **1. Initialization** | `distance[src] = 0`<br>`All others = ∞`<br>`Queue = [src]` | `distance[src] = 0`<br>`All others = ∞`<br>`visited = all false` |
+| **2. Data Structure** | **Queue (FIFO)**<br>- Add to rear<br>- Remove from front<br>- Order: insertion order | **Priority Queue (Min-Heap)**<br>- Extract minimum<br>- Update priorities<br>- Order: by distance |
+| **3. Vertex Selection** | `u = queue.dequeue()`<br>**Take next in line**<br>(first added, first processed) | `u = vertex with min distance[u]`<br>**Take closest unvisited**<br>(greedy choice) |
+| **4. Neighbor Processing** | For each neighbor `v` of `u`:<br>`if not visited[v]:`<br>`  distance[v] = distance[u] + 1`<br>`  queue.enqueue(v)` | For each neighbor `v` of `u`:<br>`if not visited[v]:`<br>`  new_dist = distance[u] + weight(u,v)`<br>`  if new_dist < distance[v]:`<br>`    distance[v] = new_dist` |
+| **5. Distance Calculation** | **Always +1**<br>`distance[v] = distance[u] + 1`<br>(count edges, ignore weights) | **Add edge weight**<br>`distance[v] = distance[u] + weight(u,v)`<br>(accumulate actual weights) |
+| **6. Relaxation** | **No relaxation**<br>Distance set once when discovered<br>Never updated | **Relaxation used**<br>`if distance[u] + w < distance[v]:`<br>`  distance[v] = distance[u] + w`<br>Can update multiple times |
+| **7. Visit Order** | **Layer by layer**<br>- Visit all at distance 1<br>- Then all at distance 2<br>- Then all at distance 3 | **Closest first**<br>- Visit vertex with smallest distance<br>- Not necessarily in layers<br>- Can jump to distant vertex if closest |
+| **8. Marking Visited** | When first discovered<br>`visited[v] = true` on enqueue | When processed<br>`visited[u] = true` after exploring neighbors |
+| **9. Termination** | Queue becomes empty | All vertices visited OR<br>min distance = ∞ (unreachable) |
+| **10. Correctness** | ✅ Unweighted graphs only<br>❌ Fails on weighted (ignores weights) | ✅ Non-negative weighted graphs<br>❌ Fails with negative weights |
+
+**Example Walkthrough:**
+
+Graph: `A--(1)--B--(1)--C` and `A--(10)--C`
+
+```
+BFS Execution:
+1. Start: distance[A]=0, queue=[A]
+2. Process A:
+   - Discover B: distance[B]=0+1=1, queue=[B,C]
+   - Discover C: distance[C]=0+1=1
+3. Process B:
+   - C already visited, skip
+4. Result: distance[C]=1 ❌ (used edge with weight 10)
+
+Dijkstra Execution:
+1. Start: distance[A]=0
+2. Pick A (min=0):
+   - Relax A→B: distance[B]=0+1=1
+   - Relax A→C: distance[C]=0+10=10
+3. Pick B (min=1):
+   - Relax B→C: distance[C]=min(10, 1+1)=2
+4. Pick C (min=2)
+5. Result: distance[C]=2 ✅ (A→B→C path)
+```
+
+**Key Insight:** BFS assumes all edges equal. Dijkstra weighs each step, always choosing the cheapest path explored so far.
+
+---
+
+#### Side-by-Side: Dijkstra vs Bellman-Ford Algorithm Steps
+
+**Core Difference:** Dijkstra greedily picks best vertex, Bellman-Ford systematically relaxes all edges.
+
+| Step | Dijkstra | Bellman-Ford |
+|------|----------|--------------|
+| **1. Initialization** | `distance[src] = 0`<br>`All others = ∞`<br>`visited = all false` | `distance[src] = 0`<br>`All others = ∞`<br>`No visited tracking` |
+| **2. Main Loop** | **For each vertex:**<br>`while unvisited vertices exist:`<br>Process one vertex per iteration | **For (V-1) iterations:**<br>`for each iteration:`<br>Check ALL edges every iteration |
+| **3. Vertex Selection** | **Greedy choice:**<br>`u = unvisited vertex with min distance[u]`<br>- Choose best option NOW<br>- Assumes choice is final | **No vertex selection:**<br>Process all edges regardless<br>- No assumptions<br>- Allows reconsideration |
+| **4. Edge Processing** | **Outgoing edges from u only:**<br>`for each neighbor v of u:`<br>Only edges from current vertex | **ALL edges in graph:**<br>`for each edge (u,v) in E:`<br>Every edge, every iteration |
+| **5. Relaxation** | `if distance[u] + weight(u,v) < distance[v]:`<br>`  distance[v] = distance[u] + weight(u,v)`<br>**Once per edge** (when u processed) | `if distance[u] + weight(u,v) < distance[v]:`<br>`  distance[v] = distance[u] + weight(u,v)`<br>**Up to (V-1) times per edge** |
+| **6. Order Dependence** | **Order matters critically:**<br>Must process vertices in distance order<br>Wrong order = wrong answer | **Order doesn't matter:**<br>Can process edges in any order<br>Will converge to correct answer |
+| **7. Finality** | **Once visited, never reconsidered:**<br>`visited[u] = true`<br>distance[u] is FINAL | **Can update any vertex any time:**<br>No finality until (V-1) iterations done<br>Allows fixing mistakes |
+| **8. Negative Edges** | **Breaks algorithm:**<br>Greedy choice becomes wrong<br>Finalized vertices can't be updated | **Handles correctly:**<br>Multiple passes catch negative edges<br>Later iterations fix earlier estimates |
+| **9. Termination** | When all reachable vertices visited | After exactly (V-1) iterations |
+| **10. Cycle Detection** | **No cycle detection:**<br>Assumes no negative cycles exist | **V-th iteration check:**<br>`if any edge can still relax:`<br>`  NEGATIVE CYCLE EXISTS` |
+| **11. Time Complexity** | **O((V+E) log V)**<br>- V vertex selections: O(V log V)<br>- E edge relaxations: O(E log V) | **O(V × E)**<br>- V-1 iterations<br>- E edges per iteration |
+
+**Example: Why Dijkstra Fails with Negative Edges**
+
+Graph: `A--(5)-->B--(-8)-->C` and `A--(10)-->C`
+
+```
+Dijkstra Execution (WRONG):
+Iteration 1: Pick A (dist=0)
+  - Relax A→B: distance[B]=5
+  - Relax A→C: distance[C]=10
+  - Mark A as VISITED (FINAL)
+
+Iteration 2: Pick B (dist=5)
+  - Relax B→C: distance[C]=min(10, 5-8)=-3
+  - Mark B as VISITED (FINAL)
+
+Iteration 3: Pick C (dist=-3)
+  - Wait! We used distance[C]=10 when we picked B!
+  - But distance[C] should have been -3!
+  - C was discovered late, so wrong distance used
+
+❌ Problem: Greedy choice assumed 10 was final for C
+   Negative edge from B made it -3 instead
+
+Bellman-Ford Execution (CORRECT):
+Iteration 1 (pass through all edges):
+  - Relax A→B: distance[B]=0+5=5
+  - Relax A→C: distance[C]=0+10=10
+  - Relax B→C: distance[C]=min(10, 5-8)=-3 ✅
+
+Iteration 2:
+  - No more updates (converged)
+
+✅ Correct: All edges checked, found A→B→C = -3
+```
+
+**Example: Negative Cycle Detection**
+
+Graph: `A--(1)-->B--(-3)-->C--(1)-->B`
+
+```
+Bellman-Ford Execution:
+Initialization: distance[A]=0, distance[B]=∞, distance[C]=∞
+
+Iteration 1:
+  - Relax A→B: distance[B]=1
+  - Relax B→C: distance[C]=1-3=-2
+  - Relax C→B: distance[B]=min(1, -2+1)=-1 ✅ Updated!
+
+Iteration 2:
+  - Relax A→B: no change
+  - Relax B→C: distance[C]=-1-3=-4 ✅ Updated again!
+  - Relax C→B: distance[B]=min(-1, -4+1)=-3 ✅ Updated again!
+
+After (V-1)=2 iterations, run V-th check:
+  - Try relax B→C: -3-3=-6 < -4 ✅ CAN STILL RELAX!
+
+Conclusion: ❌ NEGATIVE CYCLE: B→C→B (weight: -3+1=-2)
+            No shortest path exists (can loop forever)
+```
+
+**Key Insight:** Dijkstra makes irreversible greedy choices (fast but fragile). Bellman-Ford exhaustively checks all possibilities (slow but robust).
+
+---
+
+#### When to Use Each Algorithm
+
+**Use BFS when:**
+- ✅ Unweighted graph (all edges equal)
+- ✅ Finding shortest path by hop count
+- ✅ Social networks, web crawling
+- ✅ Need fastest algorithm
+- Example: LinkedIn connections, six degrees of separation
+
+**Use Dijkstra when:**
+- ✅ Weighted graph with NON-NEGATIVE weights
+- ✅ GPS navigation, network routing
+- ✅ All weights positive (distances, costs, times)
+- ✅ Need efficient solution
+- Example: Google Maps, package delivery routes
+
+**Use Bellman-Ford when:**
+- ✅ Weighted graph with POSSIBLE NEGATIVE weights
+- ✅ Need to detect negative cycles
+- ✅ Financial applications (arbitrage detection)
+- ✅ Correctness more important than speed
+- Example: Currency exchange, difference constraints
+
+**Summary decision tree:**
+```
+Unweighted graph? → BFS
+    ↓ No
+Negative edges? → Bellman-Ford
+    ↓ No
+Non-negative weighted → Dijkstra
+```
+
+---
+
+### Minimum Spanning Tree (MST) Algorithms
+
+#### What is a Minimum Spanning Tree?
+
+A **Minimum Spanning Tree** of a weighted undirected graph is:
+- A **spanning tree** (connects all vertices, no cycles)
+- With **minimum total edge weight**
+- Has exactly **(V-1) edges** where V = number of vertices
+
+**Applications:**
+- Network design (minimum cable/wire to connect all nodes)
+- Road planning (connect cities with minimum road length)
+- Clustering algorithms (group similar data)
+- Approximation algorithms for NP-hard problems
+
+---
+
+#### Prim's Algorithm vs Kruskal's Algorithm
+
+Both find the MST, but use different approaches:
+
+| Aspect | Prim's Algorithm | Kruskal's Algorithm |
+|--------|------------------|---------------------|
+| **Core idea** | Grow tree from vertex | Merge forests by edges |
+| **Selection** | Vertex-based | Edge-based |
+| **Starts with** | Single vertex | All edges |
+| **Each step** | Add cheapest edge to new vertex | Add cheapest non-cycle edge |
+| **Data structure** | Priority queue (or array) | Union-Find (disjoint set) |
+| **Maintains** | Always one connected tree | May have multiple trees |
+| **Best for** | Dense graphs (E ≈ V²) | Sparse graphs (E << V²) |
+| **Time** | O(V²) or O((V+E) log V) | O(E log E) |
+| **Space** | O(V) | O(V) + O(E) for edge list |
+
+---
+
+#### Side-by-Side: Prim's vs Kruskal's Algorithm Steps
+
+**Example Graph:**
+```
+    0 --2-- 1
+    |  \    |
+    6   4   3
+    |    \  |
+    3 --5-- 2
+
+Edges: 0-1(2), 0-2(4), 0-3(6), 1-2(3), 2-3(5)
+```
+
+| Step | Prim's Algorithm | Kruskal's Algorithm |
+|------|------------------|---------------------|
+| **1. Initialization** | Pick starting vertex (e.g., 0)<br>`MST = {0}`<br>`key[0] = 0, others = ∞` | Sort ALL edges by weight<br>`Sorted: [0-1(2), 1-2(3), 0-2(4), 2-3(5), 0-3(6)]`<br>Each vertex in own set |
+| **2. Iteration 1** | Find cheapest edge from MST to non-MST<br>`0→1 (weight 2)` is minimum<br>Add vertex 1<br>`MST = {0, 1}` | Process edge 0-1 (weight 2)<br>`find(0) ≠ find(1)` ✓<br>Add edge 0-1<br>`union(0, 1)` |
+| **3. Iteration 2** | Edges from {0,1} to non-MST:<br>`0→2(4), 1→2(3), 0→3(6)`<br>Minimum: `1→2(3)`<br>Add vertex 2<br>`MST = {0, 1, 2}` | Process edge 1-2 (weight 3)<br>`find(1) ≠ find(2)` ✓<br>Add edge 1-2<br>`union(1, 2)` |
+| **4. Iteration 3** | Edges from {0,1,2} to non-MST:<br>`0→3(6), 2→3(5)`<br>Minimum: `2→3(5)`<br>Add vertex 3<br>`MST = {0, 1, 2, 3}` | Process edge 0-2 (weight 4)<br>`find(0) = find(2)` ✗ SKIP<br>(would create cycle) |
+| **5. Iteration 4** | All vertices in MST<br>DONE! | Process edge 2-3 (weight 5)<br>`find(2) ≠ find(3)` ✓<br>Add edge 2-3<br>`union(2, 3)` |
+| **6. Completion** | MST edges: 0-1, 1-2, 2-3<br>Total weight: 2+3+5 = **10** | Process edge 0-3 (weight 6)<br>`find(0) = find(3)` ✗ SKIP<br>4 edges added, DONE!<br>Total: **10** |
+
+**Result:** Both find MST with weight 10, but in different order!
+
+---
+
+#### Detailed Algorithm Comparisons
+
+##### Prim's Algorithm - Vertex-Centric Growth
+
+```
+Algorithm:
+1. Start: Pick any vertex, add to MST
+2. Repeat until all vertices in MST:
+   - Find MINIMUM weight edge where:
+     * One endpoint IN MST
+     * Other endpoint NOT in MST
+   - Add this edge and new vertex to MST
+3. Result: MST with (V-1) edges
+
+Key data:
+- key[v]: Minimum weight edge to connect v to MST
+- parent[v]: Which MST vertex connects to v
+- in_mst[v]: Boolean - is v in MST yet?
+```
+
+**Step-by-step example:**
+```
+Graph:     0--2--1        Start at 0
+           |\ /  |
+           6 4  3        Step 1: MST = {0}
+           |  \/ |               Available: 0-1(2), 0-2(4), 0-3(6)
+           3--5--2               Choose: 0-1(2) ✓
+
+                         Step 2: MST = {0,1}
+                                 Available: 1-2(3), 0-2(4), 0-3(6)
+                                 Choose: 1-2(3) ✓
+
+                         Step 3: MST = {0,1,2}
+                                 Available: 0-2(4)✗skip, 2-3(5), 0-3(6)
+                                 Choose: 2-3(5) ✓
+
+                         Done! Total = 2+3+5 = 10
+```
+
+**Why it works:**
+- Greedy choice: always pick minimum weight edge to grow tree
+- Cut property: minimum edge crossing MST/non-MST boundary must be in MST
+- Maintains one connected component throughout
+
+---
+
+##### Kruskal's Algorithm - Edge-Centric Merging
+
+```
+Algorithm:
+1. Sort ALL edges by weight (ascending)
+2. Initialize Union-Find: each vertex separate component
+3. For each edge (u,v) in sorted order:
+   - If find(u) ≠ find(v):  // Different components
+     * Add edge to MST
+     * union(u, v)           // Merge components
+   - Else: skip (would create cycle)
+4. Stop when (V-1) edges added
+
+Key data structure: Union-Find
+- find(v): Which component is v in?
+- union(u,v): Merge components of u and v
+```
+
+**Step-by-step example:**
+```
+Graph:     0--2--1        Sorted edges: [0-1(2), 1-2(3), 0-2(4), 2-3(5), 0-3(6)]
+           |\ /  |
+           6 4  3        Components: {0} {1} {2} {3}
+           |  \/ |
+           3--5--2        Edge 0-1(2): find(0)≠find(1) ✓ Add, union(0,1)
+                          Components: {0,1} {2} {3}
+
+                          Edge 1-2(3): find(1)≠find(2) ✓ Add, union(1,2)
+                          Components: {0,1,2} {3}
+
+                          Edge 0-2(4): find(0)=find(2) ✗ Skip (cycle!)
+                          Components: {0,1,2} {3}
+
+                          Edge 2-3(5): find(2)≠find(3) ✓ Add, union(2,3)
+                          Components: {0,1,2,3}
+
+                          3 edges added, DONE! Total = 2+3+5 = 10
+```
+
+**Why it works:**
+- Cycle property: maximum weight edge in any cycle cannot be in MST
+- Union-Find efficiently detects if adding edge creates cycle
+- Sorting ensures we always try cheapest edges first
+
+---
+
+#### Union-Find (Disjoint Set) - Required for Kruskal's
+
+Kruskal's algorithm requires efficient cycle detection using Union-Find:
+
+**Operations:**
+```c
+find(x):      Which set does x belong to?
+              Returns representative/root of set
+
+union(x, y):  Merge sets containing x and y
+              Returns true if merged, false if already same set
+```
+
+**Optimizations:**
+
+| Optimization | Technique | Benefit |
+|-------------|-----------|---------|
+| **Path Compression** | During find(), point all nodes directly to root | Makes tree flat, O(1) future finds |
+| **Union by Rank** | Attach shorter tree under taller tree | Keeps trees balanced |
+
+**Without optimizations:** O(n) per operation
+**With both optimizations:** O(α(n)) per operation where α is inverse Ackermann
+
+**Example:**
+```
+Initial: Each node its own set
+  0   1   2   3
+
+union(0, 1):
+  0       2   3
+ /
+1
+
+union(2, 3):
+  0       2
+ /       /
+1       3
+
+union(1, 2): find(1)=0, find(2)=2, merge
+  0
+ /|\
+1 2 3
+
+find(3): Traverse 3→2→0, compress path: 3→0
+  0
+ /|\
+1 2 3  ← All point directly to root
+```
+
+---
+
+#### When to Use Which MST Algorithm
+
+**Use Prim's when:**
+- ✅ Graph is **dense** (E ≈ V²)
+- ✅ Using **adjacency matrix**
+- ✅ Want to see tree **grow from a point**
+- ✅ Can use optimized priority queue
+- Example: Dense city network with many connections
+
+**Use Kruskal's when:**
+- ✅ Graph is **sparse** (E << V²)
+- ✅ Have **edge list** representation
+- ✅ Edges are **pre-sorted** or sortable
+- ✅ Can implement Union-Find efficiently
+- Example: Large sparse network, parallel processing
+
+**Performance comparison:**
+
+```
+For 1000 vertices:
+
+Dense (E = 100,000):
+  Prim's (array):    O(V²) = 1,000,000        ✓ Better
+  Kruskal's:         O(E log E) ≈ 1,700,000   Slower
+
+Sparse (E = 5,000):
+  Prim's (heap):     O((V+E) log V) ≈ 70,000  Slower
+  Kruskal's:         O(E log E) ≈ 62,000      ✓ Better
+```
+
+---
+
+#### MST Properties and Guarantees
+
+**Both algorithms guarantee:**
+- ✅ Find **optimal** MST (minimum total weight)
+- ✅ Same **total weight** (though edges may differ if weights tied)
+- ✅ Work only on **undirected** graphs
+- ✅ Require **connected** graph (or find MST forest)
+- ✅ **Greedy algorithms** (locally optimal → globally optimal)
+
+**Why greedy works for MST (but not always):**
+- **Cut Property**: For any cut, minimum edge crossing cut is in some MST
+- **Cycle Property**: Maximum edge in any cycle not in any MST
+- These properties guarantee greedy choices are safe
+
+---
+
+**Graph types supported:**
+- ✅ Directed and Undirected
+- ✅ Weighted and Unweighted
+- ✅ Complete graphs (dense - uses matrix)
+- ✅ Sparse graphs (uses adjacency list)
+- ✅ DAGs (Directed Acyclic Graphs)
+- ✅ Bipartite graphs
+
+**Visualization:**
+- ✅ Exports to Graphviz DOT format
+- ✅ Automatic rendering to PNG
+- ✅ Terminal display with chafa
+- ✅ Force-directed layouts for clarity
+
+**Shortest path algorithms:**
+- `graph_bfs_shortest_path()` - BFS for unweighted graphs (guarantees shortest path)
+- `graph_dijkstra()` - For non-negative weighted graphs (greedy, optimal)
+- `graph_bellman_ford()` - For graphs with negative weights + cycle detection
+
+**Minimum Spanning Tree (MST) algorithms:**
+- `graph_prim_mst()` - Vertex-based MST (best for dense graphs)
+- `graph_kruskal_mst()` - Edge-based MST with Union-Find (best for sparse)
+- Full Union-Find implementation with path compression and union by rank
+
+**Graph properties:**
+- `graph_is_bipartite()` - 2-coloring algorithm, O(V+E)
+- `graph_is_dag()` - Cycle detection using DFS, O(V+E)
+
+**Algorithm complexity:**
+- BFS: Time O(V + E), Space O(V) - fastest, unweighted only
+- Dijkstra: Time O((V+E) log V), Space O(V) - fast, non-negative weights
+- Bellman-Ford: Time O(V × E), Space O(V) - slower, handles negatives
+- Prim's: Time O(V²) or O((V+E) log V), Space O(V) - dense graphs
+- Kruskal's: Time O(E log E), Space O(V + E) - sparse graphs
+
+---
 
 ### Quick Reference Table
 
@@ -1550,6 +2160,15 @@ Q . . .    ← Queen in column 0
 | List reversal (recursive) | - | - | - | O(n) | Stack depth |
 | Knapsack (DP) | - | - | - | O(n×W) | W=capacity |
 | N-Queens | - | - | - | O(N²) | Backtracking |
+| **Graphs** | | | | | |
+| Adjacency Matrix | O(1) | O(1) | O(1) | O(V²) | Dense graphs |
+| Adjacency List | O(V) | O(1) | O(V) | O(V+E) | Sparse graphs |
+| BFS (unweighted) | O(V+E) | - | - | O(V) | Shortest path |
+| Dijkstra | O((V+E)logV) | - | - | O(V) | Non-negative weights |
+| Bellman-Ford | O(V×E) | - | - | O(V) | Handles negative weights |
+| Prim's MST | O(V²) or O((V+E)logV) | - | - | O(V) | Dense graphs |
+| Kruskal's MST | O(E log E) | - | - | O(V+E) | Sparse graphs |
+| Union-Find | O(α(V)) | - | - | O(V) | α ≈ constant |
 
 ### Space Complexity Notes:
 
@@ -1601,6 +2220,7 @@ Q . . .    ← Queen in column 0
 6. **Study Skip Lists** - Probabilistic alternative to balanced trees
 7. **Practice Two-Pointer Techniques** - Essential interview skill
 8. **Explore Dynamic Programming** - Advanced optimization
+9. **Master Graphs** - Shortest paths, DFS/BFS, real-world networks
 
 ### Key Concepts to Understand:
 

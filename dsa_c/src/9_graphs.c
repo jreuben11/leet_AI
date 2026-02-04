@@ -901,6 +901,946 @@ bool graph_is_dag(Graph* graph) {
 }
 
 // ============================================================
+// SHORTEST PATH ALGORITHMS
+// ============================================================
+
+/**
+ * BFS Shortest Path for Unweighted Graphs
+ *
+ * BFS guarantees shortest path in unweighted graphs because:
+ * - It explores level by level (layer by layer)
+ * - First time we reach destination is via shortest path
+ * - All edges have equal weight (1)
+ *
+ * When to use:
+ * - Unweighted graphs (all edges weight = 1)
+ * - Need guaranteed shortest path
+ * - Both directed and undirected graphs
+ *
+ * Time: O(V + E)
+ * Space: O(V) for queue and arrays
+ *
+ * @param graph  Pointer to graph
+ * @param src    Source vertex
+ * @param dest   Destination vertex
+ */
+void graph_bfs_shortest_path(Graph* graph, int src, int dest) {
+    printf("\n=== BFS Shortest Path (Unweighted Graphs) ===\n");
+    printf("From vertex %d to vertex %d\n\n", src, dest);
+
+    if (src < 0 || src >= graph->num_vertices || dest < 0 || dest >= graph->num_vertices) {
+        printf("Invalid source or destination\n");
+        return;
+    }
+
+    // Arrays for BFS
+    bool* visited = (bool*)calloc(graph->num_vertices, sizeof(bool));
+    int* distance = (int*)malloc(graph->num_vertices * sizeof(int));
+    int* parent = (int*)malloc(graph->num_vertices * sizeof(int));
+    int* queue = (int*)malloc(graph->num_vertices * sizeof(int));
+
+    // Initialize
+    for (int i = 0; i < graph->num_vertices; i++) {
+        distance[i] = INF;
+        parent[i] = -1;
+    }
+
+    // BFS initialization
+    distance[src] = 0;
+    visited[src] = true;
+    int front = 0, rear = 0;
+    queue[rear++] = src;
+
+    // BFS traversal
+    while (front < rear) {
+        int u = queue[front++];
+
+        // Early exit if we reached destination
+        if (u == dest) break;
+
+        // Explore neighbors
+        if (graph->representation == ADJACENCY_LIST) {
+            AdjListNode* node = graph->adj_list[u];
+            while (node != NULL) {
+                int v = node->dest;
+                if (!visited[v]) {
+                    visited[v] = true;
+                    distance[v] = distance[u] + 1;  // All edges weight 1
+                    parent[v] = u;
+                    queue[rear++] = v;
+                }
+                node = node->next;
+            }
+        } else {
+            for (int v = 0; v < graph->num_vertices; v++) {
+                if (graph->adj_matrix[u][v] != NO_EDGE && !visited[v]) {
+                    visited[v] = true;
+                    distance[v] = distance[u] + 1;
+                    parent[v] = u;
+                    queue[rear++] = v;
+                }
+            }
+        }
+    }
+
+    // Print result
+    if (distance[dest] == INF) {
+        printf("No path found\n");
+    } else {
+        printf("Shortest path found!\n");
+        printf("Distance: %d edges\n\n", distance[dest]);
+
+        // Reconstruct path
+        int* path = (int*)malloc(graph->num_vertices * sizeof(int));
+        int path_len = 0;
+        int current = dest;
+        while (current != -1) {
+            path[path_len++] = current;
+            current = parent[current];
+        }
+
+        // Print path (reverse order)
+        printf("Path: ");
+        for (int i = path_len - 1; i >= 0; i--) {
+            printf("%d", path[i]);
+            if (i > 0) printf(" -> ");
+        }
+        printf("\n");
+
+        free(path);
+    }
+
+    free(visited);
+    free(distance);
+    free(parent);
+    free(queue);
+}
+
+/**
+ * Dijkstra's Shortest Path Algorithm
+ *
+ * Dijkstra finds shortest path in weighted graphs with NON-NEGATIVE edges.
+ * Uses greedy approach: always expand the closest unvisited vertex.
+ *
+ * Algorithm:
+ * 1. Initialize distances: source = 0, all others = infinity
+ * 2. Repeat until all vertices processed:
+ *    a. Pick unvisited vertex with minimum distance
+ *    b. For each neighbor, try to relax (improve) its distance
+ *    c. Mark vertex as visited
+ *
+ * When to use:
+ * - Weighted graphs with NON-NEGATIVE edge weights
+ * - Need single-source shortest paths
+ * - Works on both directed and undirected graphs
+ *
+ * Why not for negative edges?
+ * - Greedy choice assumes we won't find shorter path later
+ * - Negative edges can invalidate this assumption
+ * - Use Bellman-Ford for negative edges
+ *
+ * Time: O(V²) with array, O((V+E) log V) with min-heap
+ * Space: O(V)
+ *
+ * NOTE: This implementation uses simple array (O(V²)).
+ *       For better performance on sparse graphs, use priority queue.
+ *
+ * @param graph  Pointer to graph
+ * @param src    Source vertex
+ * @param dest   Destination vertex (or -1 for all paths)
+ */
+void graph_dijkstra(Graph* graph, int src, int dest) {
+    printf("\n=== Dijkstra's Algorithm (Non-negative Weighted Graphs) ===\n");
+    if (dest >= 0) {
+        printf("From vertex %d to vertex %d\n\n", src, dest);
+    } else {
+        printf("From vertex %d to all vertices\n\n", src);
+    }
+
+    if (src < 0 || src >= graph->num_vertices ||
+        (dest >= 0 && dest >= graph->num_vertices)) {
+        printf("Invalid source or destination\n");
+        return;
+    }
+
+    // Arrays for Dijkstra
+    int* distance = (int*)malloc(graph->num_vertices * sizeof(int));
+    int* parent = (int*)malloc(graph->num_vertices * sizeof(int));
+    bool* visited = (bool*)calloc(graph->num_vertices, sizeof(bool));
+
+    // Initialize: all distances = infinity, source = 0
+    for (int i = 0; i < graph->num_vertices; i++) {
+        distance[i] = INF;
+        parent[i] = -1;
+    }
+    distance[src] = 0;
+
+    // Main Dijkstra loop: process each vertex
+    for (int count = 0; count < graph->num_vertices; count++) {
+        // Find unvisited vertex with minimum distance
+        int min_dist = INF;
+        int u = -1;
+        for (int i = 0; i < graph->num_vertices; i++) {
+            if (!visited[i] && distance[i] < min_dist) {
+                min_dist = distance[i];
+                u = i;
+            }
+        }
+
+        // If no reachable unvisited vertex, done
+        if (u == -1 || min_dist == INF) break;
+
+        // Mark as visited
+        visited[u] = true;
+
+        // Early exit if we reached destination
+        if (dest >= 0 && u == dest) break;
+
+        // Relax edges: try to improve distance to neighbors
+        if (graph->representation == ADJACENCY_LIST) {
+            AdjListNode* node = graph->adj_list[u];
+            while (node != NULL) {
+                int v = node->dest;
+                int weight = node->weight;
+
+                // Relaxation: if path through u is shorter, update
+                if (!visited[v] && distance[u] != INF &&
+                    distance[u] + weight < distance[v]) {
+                    distance[v] = distance[u] + weight;
+                    parent[v] = u;
+                }
+                node = node->next;
+            }
+        } else {
+            for (int v = 0; v < graph->num_vertices; v++) {
+                int weight = graph->adj_matrix[u][v];
+                if (weight != NO_EDGE && !visited[v] && distance[u] != INF &&
+                    distance[u] + weight < distance[v]) {
+                    distance[v] = distance[u] + weight;
+                    parent[v] = u;
+                }
+            }
+        }
+    }
+
+    // Print results
+    if (dest >= 0) {
+        // Single destination
+        if (distance[dest] == INF) {
+            printf("No path found\n");
+        } else {
+            printf("Shortest path found!\n");
+            printf("Total weight: %d\n\n", distance[dest]);
+
+            // Reconstruct path
+            int* path = (int*)malloc(graph->num_vertices * sizeof(int));
+            int path_len = 0;
+            int current = dest;
+            while (current != -1) {
+                path[path_len++] = current;
+                current = parent[current];
+            }
+
+            // Print path with weights
+            printf("Path: ");
+            int total_weight = 0;
+            for (int i = path_len - 1; i >= 0; i--) {
+                printf("%d", path[i]);
+                if (i > 0) {
+                    int u = path[i];
+                    int v = path[i-1];
+                    int weight = get_edge_weight(graph, u, v);
+                    printf(" -(%d)-> ", weight);
+                    total_weight += weight;
+                }
+            }
+            printf("\n");
+            printf("Verification: Total weight = %d\n", total_weight);
+
+            free(path);
+        }
+    } else {
+        // All destinations
+        printf("Shortest paths from vertex %d:\n\n", src);
+        printf("Dest | Distance | Path\n");
+        printf("-----|----------|---------------------\n");
+
+        for (int i = 0; i < graph->num_vertices; i++) {
+            if (i == src) continue;
+
+            printf(" %2d  | ", i);
+
+            if (distance[i] == INF) {
+                printf("   INF   | No path\n");
+            } else {
+                printf("%6d   | ", distance[i]);
+
+                // Reconstruct path
+                int* path = (int*)malloc(graph->num_vertices * sizeof(int));
+                int path_len = 0;
+                int current = i;
+                while (current != -1) {
+                    path[path_len++] = current;
+                    current = parent[current];
+                }
+
+                // Print path
+                for (int j = path_len - 1; j >= 0; j--) {
+                    printf("%d", path[j]);
+                    if (j > 0) printf("->");
+                }
+                printf("\n");
+
+                free(path);
+            }
+        }
+    }
+
+    free(distance);
+    free(parent);
+    free(visited);
+}
+
+/**
+ * Bellman-Ford Shortest Path Algorithm
+ *
+ * Bellman-Ford finds shortest path even with NEGATIVE edge weights.
+ * Unlike Dijkstra, it can handle negative weights and detect negative cycles.
+ *
+ * Algorithm:
+ * 1. Initialize distances: source = 0, all others = infinity
+ * 2. Relax ALL edges (V-1) times:
+ *    - For each edge (u,v): if dist[u] + weight < dist[v], update dist[v]
+ *    - Why V-1 times? Shortest path has at most V-1 edges
+ * 3. Check for negative cycles:
+ *    - If we can still relax any edge, negative cycle exists
+ *
+ * When to use:
+ * - Weighted graphs that MAY have NEGATIVE edge weights
+ * - Need to detect negative cycles
+ * - Works only on directed graphs (for undirected, negative edge = negative cycle)
+ *
+ * Why slower than Dijkstra?
+ * - Dijkstra: O((V+E) log V) with heap, processes each vertex once
+ * - Bellman-Ford: O(V*E), must relax all edges V-1 times
+ * - Trade-off: Bellman-Ford handles negative weights
+ *
+ * Negative cycle:
+ * - Cycle whose total weight is negative
+ * - No shortest path exists (can keep going around cycle)
+ * - Bellman-Ford can detect this
+ *
+ * Time: O(V * E)
+ * Space: O(V)
+ *
+ * @param graph  Pointer to graph (should be DIRECTED)
+ * @param src    Source vertex
+ * @param dest   Destination vertex (or -1 for all paths)
+ */
+void graph_bellman_ford(Graph* graph, int src, int dest) {
+    printf("\n=== Bellman-Ford Algorithm (Handles Negative Weights) ===\n");
+    if (dest >= 0) {
+        printf("From vertex %d to vertex %d\n\n", src, dest);
+    } else {
+        printf("From vertex %d to all vertices\n\n", src);
+    }
+
+    if (graph->type == UNDIRECTED) {
+        printf("WARNING: Bellman-Ford typically used on DIRECTED graphs.\n");
+        printf("         For undirected graphs, negative edge = negative cycle!\n\n");
+    }
+
+    if (src < 0 || src >= graph->num_vertices ||
+        (dest >= 0 && dest >= graph->num_vertices)) {
+        printf("Invalid source or destination\n");
+        return;
+    }
+
+    // Arrays for Bellman-Ford
+    int* distance = (int*)malloc(graph->num_vertices * sizeof(int));
+    int* parent = (int*)malloc(graph->num_vertices * sizeof(int));
+
+    // Initialize: all distances = infinity, source = 0
+    for (int i = 0; i < graph->num_vertices; i++) {
+        distance[i] = INF;
+        parent[i] = -1;
+    }
+    distance[src] = 0;
+
+    // Main Bellman-Ford: Relax all edges (V-1) times
+    // Why V-1? Shortest path has at most V-1 edges
+    for (int iter = 0; iter < graph->num_vertices - 1; iter++) {
+        bool updated = false;
+
+        // Try to relax every edge in the graph
+        for (int u = 0; u < graph->num_vertices; u++) {
+            if (distance[u] == INF) continue;  // Skip unreachable vertices
+
+            if (graph->representation == ADJACENCY_LIST) {
+                AdjListNode* node = graph->adj_list[u];
+                while (node != NULL) {
+                    int v = node->dest;
+                    int weight = node->weight;
+
+                    // Relaxation: if path through u is shorter, update
+                    if (distance[u] + weight < distance[v]) {
+                        distance[v] = distance[u] + weight;
+                        parent[v] = u;
+                        updated = true;
+                    }
+                    node = node->next;
+                }
+            } else {
+                for (int v = 0; v < graph->num_vertices; v++) {
+                    int weight = graph->adj_matrix[u][v];
+                    if (weight != NO_EDGE && distance[u] + weight < distance[v]) {
+                        distance[v] = distance[u] + weight;
+                        parent[v] = u;
+                        updated = true;
+                    }
+                }
+            }
+        }
+
+        // Optimization: if no updates in this iteration, done early
+        if (!updated) {
+            printf("Converged after %d iterations (early exit)\n\n", iter + 1);
+            break;
+        }
+    }
+
+    // Negative cycle detection
+    // If we can still relax edges, negative cycle exists
+    bool has_negative_cycle = false;
+    for (int u = 0; u < graph->num_vertices; u++) {
+        if (distance[u] == INF) continue;
+
+        if (graph->representation == ADJACENCY_LIST) {
+            AdjListNode* node = graph->adj_list[u];
+            while (node != NULL) {
+                int v = node->dest;
+                int weight = node->weight;
+                if (distance[u] + weight < distance[v]) {
+                    has_negative_cycle = true;
+                    break;
+                }
+                node = node->next;
+            }
+        } else {
+            for (int v = 0; v < graph->num_vertices; v++) {
+                int weight = graph->adj_matrix[u][v];
+                if (weight != NO_EDGE && distance[u] + weight < distance[v]) {
+                    has_negative_cycle = true;
+                    break;
+                }
+            }
+        }
+        if (has_negative_cycle) break;
+    }
+
+    if (has_negative_cycle) {
+        printf("❌ NEGATIVE CYCLE DETECTED!\n");
+        printf("   No shortest path exists (can keep decreasing distance)\n");
+        free(distance);
+        free(parent);
+        return;
+    }
+
+    // Print results
+    if (dest >= 0) {
+        // Single destination
+        if (distance[dest] == INF) {
+            printf("No path found\n");
+        } else {
+            printf("Shortest path found!\n");
+            printf("Total weight: %d\n\n", distance[dest]);
+
+            // Reconstruct path
+            int* path = (int*)malloc(graph->num_vertices * sizeof(int));
+            int path_len = 0;
+            int current = dest;
+            while (current != -1) {
+                path[path_len++] = current;
+                current = parent[current];
+            }
+
+            // Print path with weights
+            printf("Path: ");
+            int total_weight = 0;
+            for (int i = path_len - 1; i >= 0; i--) {
+                printf("%d", path[i]);
+                if (i > 0) {
+                    int u = path[i];
+                    int v = path[i-1];
+                    int weight = get_edge_weight(graph, u, v);
+                    printf(" -(%d)-> ", weight);
+                    total_weight += weight;
+                }
+            }
+            printf("\n");
+            printf("Verification: Total weight = %d\n", total_weight);
+
+            free(path);
+        }
+    } else {
+        // All destinations
+        printf("Shortest paths from vertex %d:\n\n", src);
+        printf("Dest | Distance | Path\n");
+        printf("-----|----------|---------------------\n");
+
+        for (int i = 0; i < graph->num_vertices; i++) {
+            if (i == src) continue;
+
+            printf(" %2d  | ", i);
+
+            if (distance[i] == INF) {
+                printf("   INF   | No path\n");
+            } else {
+                printf("%6d   | ", distance[i]);
+
+                // Reconstruct path
+                int* path = (int*)malloc(graph->num_vertices * sizeof(int));
+                int path_len = 0;
+                int current = i;
+                while (current != -1) {
+                    path[path_len++] = current;
+                    current = parent[current];
+                }
+
+                // Print path
+                for (int j = path_len - 1; j >= 0; j--) {
+                    printf("%d", path[j]);
+                    if (j > 0) printf("->");
+                }
+                printf("\n");
+
+                free(path);
+            }
+        }
+    }
+
+    free(distance);
+    free(parent);
+}
+
+// ============================================================
+// MINIMUM SPANNING TREE (MST) ALGORITHMS
+// ============================================================
+
+// ------------------------------------------------------------
+// UNION-FIND (Disjoint Set) Data Structure
+// Required for Kruskal's algorithm
+// ------------------------------------------------------------
+
+/**
+ * Union-Find (Disjoint Set) Data Structure
+ *
+ * Used to track connected components efficiently.
+ * Essential for Kruskal's algorithm to detect cycles.
+ *
+ * Operations:
+ * - find(x): Which set does x belong to? (with path compression)
+ * - union(x, y): Merge sets containing x and y (with union by rank)
+ *
+ * Optimizations:
+ * - Path compression: Make tree flat during find
+ * - Union by rank: Attach smaller tree under larger tree
+ *
+ * Time complexity: O(α(n)) per operation, where α is inverse Ackermann
+ * (effectively constant for all practical purposes)
+ */
+typedef struct {
+    int* parent;  // parent[i] = parent of vertex i
+    int* rank;    // rank[i] = approximate height of tree rooted at i
+    int size;     // number of elements
+} UnionFind;
+
+/**
+ * Create Union-Find structure
+ * Initially, each element is in its own set
+ */
+UnionFind* uf_create(int n) {
+    UnionFind* uf = (UnionFind*)malloc(sizeof(UnionFind));
+    uf->size = n;
+    uf->parent = (int*)malloc(n * sizeof(int));
+    uf->rank = (int*)calloc(n, sizeof(int));
+
+    // Initially, each vertex is its own parent (separate component)
+    for (int i = 0; i < n; i++) {
+        uf->parent[i] = i;
+    }
+
+    return uf;
+}
+
+/**
+ * Find the root (representative) of the set containing x
+ * Uses path compression: makes tree flat for faster future queries
+ */
+int uf_find(UnionFind* uf, int x) {
+    if (uf->parent[x] != x) {
+        // Path compression: point directly to root
+        uf->parent[x] = uf_find(uf, uf->parent[x]);
+    }
+    return uf->parent[x];
+}
+
+/**
+ * Merge (union) the sets containing x and y
+ * Uses union by rank: attach smaller tree under larger tree
+ * Returns true if sets were different (union performed)
+ * Returns false if already in same set (would create cycle)
+ */
+bool uf_union(UnionFind* uf, int x, int y) {
+    int root_x = uf_find(uf, x);
+    int root_y = uf_find(uf, y);
+
+    // Already in same set
+    if (root_x == root_y) {
+        return false;
+    }
+
+    // Union by rank: attach smaller tree under larger tree
+    if (uf->rank[root_x] < uf->rank[root_y]) {
+        uf->parent[root_x] = root_y;
+    } else if (uf->rank[root_x] > uf->rank[root_y]) {
+        uf->parent[root_y] = root_x;
+    } else {
+        // Equal rank: choose one as root, increment rank
+        uf->parent[root_y] = root_x;
+        uf->rank[root_x]++;
+    }
+
+    return true;
+}
+
+/**
+ * Free Union-Find structure
+ */
+void uf_destroy(UnionFind* uf) {
+    free(uf->parent);
+    free(uf->rank);
+    free(uf);
+}
+
+// ------------------------------------------------------------
+// Edge structure for MST algorithms
+// ------------------------------------------------------------
+
+typedef struct {
+    int u, v;      // Edge endpoints
+    int weight;    // Edge weight
+} Edge;
+
+/**
+ * Comparison function for sorting edges by weight (for Kruskal's)
+ */
+int compare_edges(const void* a, const void* b) {
+    Edge* edge_a = (Edge*)a;
+    Edge* edge_b = (Edge*)b;
+    return edge_a->weight - edge_b->weight;
+}
+
+// ------------------------------------------------------------
+// Prim's Algorithm - Minimum Spanning Tree
+// ------------------------------------------------------------
+
+/**
+ * Prim's Algorithm for Minimum Spanning Tree
+ *
+ * Approach: Grow MST one vertex at a time
+ * - Start with arbitrary vertex
+ * - Repeatedly add cheapest edge from MST to non-MST vertex
+ * - Continue until all vertices included
+ *
+ * Think of it as: Growing a connected tree from a single point
+ *
+ * Algorithm steps:
+ * 1. Start with any vertex in MST
+ * 2. Find minimum weight edge connecting:
+ *    - A vertex IN the MST
+ *    - To a vertex NOT in the MST
+ * 3. Add this edge and vertex to MST
+ * 4. Repeat until all vertices in MST
+ *
+ * When to use:
+ * - Dense graphs (many edges)
+ * - Adjacency matrix representation
+ * - Want to see MST grow from a point
+ *
+ * Time: O(V²) with array, O((V+E) log V) with min-heap
+ * Space: O(V)
+ *
+ * NOTE: This implementation uses simple array (O(V²))
+ *       For better performance, use priority queue
+ *
+ * @param graph  Pointer to graph (must be UNDIRECTED and WEIGHTED)
+ * @return       Array of edges in MST, or NULL on error
+ */
+Edge* graph_prim_mst(Graph* graph, int* mst_size) {
+    if (graph->type == DIRECTED) {
+        printf("Error: Prim's requires UNDIRECTED graph\n");
+        return NULL;
+    }
+
+    printf("\n=== Prim's Algorithm - Minimum Spanning Tree ===\n\n");
+
+    int V = graph->num_vertices;
+
+    // Arrays for Prim's algorithm
+    int* key = (int*)malloc(V * sizeof(int));        // Minimum weight to include vertex
+    int* parent = (int*)malloc(V * sizeof(int));     // Parent vertex in MST
+    bool* in_mst = (bool*)calloc(V, sizeof(bool));   // Whether vertex in MST
+
+    // Initialize: all keys = infinity, no parents
+    for (int i = 0; i < V; i++) {
+        key[i] = INF;
+        parent[i] = -1;
+    }
+
+    // Start from vertex 0
+    key[0] = 0;  // Start vertex has key 0 so it's picked first
+
+    printf("Step-by-step construction:\n\n");
+    int step = 0;
+
+    // Build MST with V-1 edges
+    for (int count = 0; count < V; count++) {
+        // Find vertex with minimum key that's not in MST
+        int min_key = INF;
+        int u = -1;
+        for (int v = 0; v < V; v++) {
+            if (!in_mst[v] && key[v] < min_key) {
+                min_key = key[v];
+                u = v;
+            }
+        }
+
+        if (u == -1) break;  // No more reachable vertices
+
+        // Add vertex to MST
+        in_mst[u] = true;
+
+        // Print step
+        if (parent[u] != -1) {
+            printf("Step %d: Add edge %d-%d (weight: %d)\n",
+                   ++step, parent[u], u, key[u]);
+            printf("        MST now includes vertices: ");
+            for (int i = 0; i < V; i++) {
+                if (in_mst[i]) printf("%d ", i);
+            }
+            printf("\n\n");
+        } else {
+            printf("Step %d: Start at vertex %d\n\n", ++step, u);
+        }
+
+        // Update keys of adjacent vertices
+        if (graph->representation == ADJACENCY_LIST) {
+            AdjListNode* node = graph->adj_list[u];
+            while (node != NULL) {
+                int v = node->dest;
+                int weight = node->weight;
+
+                // If v not in MST and weight is smaller than current key
+                if (!in_mst[v] && weight < key[v]) {
+                    key[v] = weight;
+                    parent[v] = u;
+                }
+                node = node->next;
+            }
+        } else {
+            for (int v = 0; v < V; v++) {
+                int weight = graph->adj_matrix[u][v];
+                if (weight != NO_EDGE && !in_mst[v] && weight < key[v]) {
+                    key[v] = weight;
+                    parent[v] = u;
+                }
+            }
+        }
+    }
+
+    // Build MST edge array
+    Edge* mst = (Edge*)malloc((V - 1) * sizeof(Edge));
+    *mst_size = 0;
+    int total_weight = 0;
+
+    for (int v = 1; v < V; v++) {
+        if (parent[v] != -1) {
+            mst[*mst_size].u = parent[v];
+            mst[*mst_size].v = v;
+            mst[*mst_size].weight = key[v];
+            total_weight += key[v];
+            (*mst_size)++;
+        }
+    }
+
+    printf("Prim's MST Complete!\n");
+    printf("Total MST weight: %d\n", total_weight);
+    printf("Edges in MST: %d\n", *mst_size);
+
+    free(key);
+    free(parent);
+    free(in_mst);
+
+    return mst;
+}
+
+// ------------------------------------------------------------
+// Kruskal's Algorithm - Minimum Spanning Tree
+// ------------------------------------------------------------
+
+/**
+ * Kruskal's Algorithm for Minimum Spanning Tree
+ *
+ * Approach: Sort all edges, add cheapest edges that don't create cycles
+ * - Sort all edges by weight (ascending)
+ * - Use Union-Find to track connected components
+ * - For each edge (cheapest first):
+ *   - If endpoints in different components: add edge, merge components
+ *   - If endpoints in same component: skip (would create cycle)
+ *
+ * Think of it as: Merging forests into a tree by choosing cheapest connections
+ *
+ * Algorithm steps:
+ * 1. Sort ALL edges by weight
+ * 2. Initialize Union-Find (each vertex is separate component)
+ * 3. For each edge (u, v) in sorted order:
+ *    a. If find(u) ≠ find(v):  // Different components
+ *       - Add edge to MST
+ *       - union(u, v)           // Merge components
+ *    b. Else: skip (would create cycle)
+ * 4. Stop when V-1 edges added
+ *
+ * When to use:
+ * - Sparse graphs (few edges)
+ * - Edge list representation
+ * - Edges already sorted
+ * - Parallel processing possible
+ *
+ * Time: O(E log E) for sorting + O(E α(V)) for Union-Find ≈ O(E log E)
+ * Space: O(E) for edge list + O(V) for Union-Find
+ *
+ * @param graph  Pointer to graph (must be UNDIRECTED and WEIGHTED)
+ * @return       Array of edges in MST, or NULL on error
+ */
+Edge* graph_kruskal_mst(Graph* graph, int* mst_size) {
+    if (graph->type == DIRECTED) {
+        printf("Error: Kruskal's requires UNDIRECTED graph\n");
+        return NULL;
+    }
+
+    printf("\n=== Kruskal's Algorithm - Minimum Spanning Tree ===\n\n");
+
+    int V = graph->num_vertices;
+    int E = graph->num_edges;
+
+    // Step 1: Collect all edges
+    printf("Step 1: Collecting all edges...\n");
+    Edge* edges = (Edge*)malloc(E * sizeof(Edge));
+    int edge_count = 0;
+
+    if (graph->representation == ADJACENCY_LIST) {
+        for (int u = 0; u < V; u++) {
+            AdjListNode* node = graph->adj_list[u];
+            while (node != NULL) {
+                int v = node->dest;
+                // For undirected graph, only add edge once (u < v)
+                if (u < v) {
+                    edges[edge_count].u = u;
+                    edges[edge_count].v = v;
+                    edges[edge_count].weight = node->weight;
+                    edge_count++;
+                }
+                node = node->next;
+            }
+        }
+    } else {
+        for (int u = 0; u < V; u++) {
+            for (int v = u + 1; v < V; v++) {  // u < v for undirected
+                if (graph->adj_matrix[u][v] != NO_EDGE) {
+                    edges[edge_count].u = u;
+                    edges[edge_count].v = v;
+                    edges[edge_count].weight = graph->adj_matrix[u][v];
+                    edge_count++;
+                }
+            }
+        }
+    }
+
+    printf("        Found %d edges\n\n", edge_count);
+
+    // Step 2: Sort edges by weight
+    printf("Step 2: Sorting edges by weight...\n");
+    qsort(edges, edge_count, sizeof(Edge), compare_edges);
+
+    printf("        Sorted edge list:\n");
+    for (int i = 0; i < edge_count; i++) {
+        printf("        %d-%d (weight: %d)\n",
+               edges[i].u, edges[i].v, edges[i].weight);
+    }
+    printf("\n");
+
+    // Step 3: Initialize Union-Find
+    printf("Step 3: Initializing Union-Find...\n");
+    UnionFind* uf = uf_create(V);
+    printf("        Each vertex starts in its own component\n\n");
+
+    // Step 4: Process edges in sorted order
+    printf("Step 4: Processing edges (adding if no cycle):\n\n");
+    Edge* mst = (Edge*)malloc((V - 1) * sizeof(Edge));
+    *mst_size = 0;
+    int total_weight = 0;
+    int step = 0;
+
+    for (int i = 0; i < edge_count && *mst_size < V - 1; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+        int weight = edges[i].weight;
+
+        // Check if u and v are in different components
+        int root_u = uf_find(uf, u);
+        int root_v = uf_find(uf, v);
+
+        printf("Edge %d-%d (weight: %d): ", u, v, weight);
+
+        if (root_u != root_v) {
+            // Different components - add edge to MST
+            printf("✓ ADDED (connects components %d and %d)\n", root_u, root_v);
+            mst[*mst_size] = edges[i];
+            (*mst_size)++;
+            total_weight += weight;
+            uf_union(uf, u, v);
+            step++;
+        } else {
+            // Same component - would create cycle
+            printf("✗ SKIPPED (would create cycle, both in component %d)\n", root_u);
+        }
+    }
+
+    printf("\nKruskal's MST Complete!\n");
+    printf("Total MST weight: %d\n", total_weight);
+    printf("Edges in MST: %d\n", *mst_size);
+
+    free(edges);
+    uf_destroy(uf);
+
+    return mst;
+}
+
+/**
+ * Display MST edges
+ */
+void display_mst(Edge* mst, int mst_size) {
+    printf("\nMST Edges:\n");
+    int total = 0;
+    for (int i = 0; i < mst_size; i++) {
+        printf("  %d -- %d  (weight: %d)\n", mst[i].u, mst[i].v, mst[i].weight);
+        total += mst[i].weight;
+    }
+    printf("\nTotal weight: %d\n", total);
+}
+
+// ============================================================
 // TEST FUNCTIONS
 // ============================================================
 
@@ -1009,6 +1949,236 @@ void test_comparison_matrix_vs_list() {
     graph_destroy(g_list);
 }
 
+void test_bfs_shortest_path() {
+    printf("\n=== Test 7: BFS Shortest Path (Unweighted Graph) ===\n\n");
+
+    // Create unweighted graph
+    Graph* graph = graph_create(6, UNDIRECTED, UNWEIGHTED, ADJACENCY_LIST);
+
+    graph_add_edge(graph, 0, 1, 1);
+    graph_add_edge(graph, 0, 2, 1);
+    graph_add_edge(graph, 1, 3, 1);
+    graph_add_edge(graph, 2, 3, 1);
+    graph_add_edge(graph, 2, 4, 1);
+    graph_add_edge(graph, 3, 5, 1);
+    graph_add_edge(graph, 4, 5, 1);
+
+    graph_display_info(graph);
+    graph_display_list(graph);
+
+    // Test BFS shortest path
+    graph_bfs_shortest_path(graph, 0, 5);
+
+    graph_destroy(graph);
+}
+
+void test_dijkstra() {
+    printf("\n=== Test 8: Dijkstra's Algorithm (Weighted Graph) ===\n\n");
+
+    // Create weighted directed graph
+    Graph* graph = graph_create(6, DIRECTED, WEIGHTED, ADJACENCY_LIST);
+
+    // Add edges to create interesting paths
+    graph_add_edge(graph, 0, 1, 4);
+    graph_add_edge(graph, 0, 2, 2);
+    graph_add_edge(graph, 1, 2, 1);
+    graph_add_edge(graph, 1, 3, 5);
+    graph_add_edge(graph, 2, 3, 8);
+    graph_add_edge(graph, 2, 4, 10);
+    graph_add_edge(graph, 3, 4, 2);
+    graph_add_edge(graph, 3, 5, 6);
+    graph_add_edge(graph, 4, 5, 3);
+
+    graph_display_info(graph);
+    graph_display_list(graph);
+
+    // Test single destination
+    printf("\n--- Single destination shortest path ---\n");
+    graph_dijkstra(graph, 0, 5);
+
+    // Test all destinations
+    printf("\n\n--- All destinations from source ---\n");
+    graph_dijkstra(graph, 0, -1);
+
+    graph_destroy(graph);
+}
+
+void test_bellman_ford() {
+    printf("\n=== Test 9: Bellman-Ford Algorithm ===\n\n");
+
+    // Test 1: Graph with negative weights (but no negative cycle)
+    printf("--- Test 9a: Graph with Negative Weights ---\n\n");
+    Graph* graph1 = graph_create(5, DIRECTED, WEIGHTED, ADJACENCY_LIST);
+
+    graph_add_edge(graph1, 0, 1, 4);
+    graph_add_edge(graph1, 0, 2, 2);
+    graph_add_edge(graph1, 1, 3, 3);
+    graph_add_edge(graph1, 2, 1, -5);  // Negative weight!
+    graph_add_edge(graph1, 2, 3, 6);
+    graph_add_edge(graph1, 3, 4, 2);
+
+    graph_display_info(graph1);
+    graph_display_list(graph1);
+
+    graph_bellman_ford(graph1, 0, 4);
+
+    graph_destroy(graph1);
+
+    // Test 2: Graph with negative cycle
+    printf("\n\n--- Test 9b: Negative Cycle Detection ---\n\n");
+    Graph* graph2 = graph_create(4, DIRECTED, WEIGHTED, ADJACENCY_LIST);
+
+    graph_add_edge(graph2, 0, 1, 1);
+    graph_add_edge(graph2, 1, 2, -3);  // Negative weight
+    graph_add_edge(graph2, 2, 3, 2);
+    graph_add_edge(graph2, 3, 1, -2);  // Creates negative cycle: 1->2->3->1 = -3+2-2 = -3
+
+    graph_display_info(graph2);
+    graph_display_list(graph2);
+
+    printf("\nNegative cycle: 1 -> 2 -> 3 -> 1\n");
+    printf("Weight: -3 + 2 + (-2) = -3 (NEGATIVE!)\n");
+
+    graph_bellman_ford(graph2, 0, 3);
+
+    graph_destroy(graph2);
+}
+
+void test_mst_comparison() {
+    printf("\n=== Test 10: MST Algorithms Comparison ===\n\n");
+
+    // Create a weighted undirected graph
+    printf("Creating test graph for MST:\n\n");
+    Graph* graph = graph_create(6, UNDIRECTED, WEIGHTED, ADJACENCY_LIST);
+
+    // Add edges - classic MST example
+    graph_add_edge(graph, 0, 1, 4);
+    graph_add_edge(graph, 0, 2, 3);
+    graph_add_edge(graph, 1, 2, 1);
+    graph_add_edge(graph, 1, 3, 2);
+    graph_add_edge(graph, 2, 3, 4);
+    graph_add_edge(graph, 2, 4, 5);
+    graph_add_edge(graph, 3, 4, 1);
+    graph_add_edge(graph, 3, 5, 6);
+    graph_add_edge(graph, 4, 5, 3);
+
+    graph_display_info(graph);
+    graph_display_list(graph);
+    graph_display_visual(graph);
+
+    // Run Prim's algorithm
+    printf("\n");
+    printf("========================================\n");
+    int prim_size;
+    Edge* prim_mst = graph_prim_mst(graph, &prim_size);
+    printf("========================================\n");
+
+    if (prim_mst) {
+        display_mst(prim_mst, prim_size);
+    }
+
+    // Run Kruskal's algorithm
+    printf("\n\n");
+    printf("========================================\n");
+    int kruskal_size;
+    Edge* kruskal_mst = graph_kruskal_mst(graph, &kruskal_size);
+    printf("========================================\n");
+
+    if (kruskal_mst) {
+        display_mst(kruskal_mst, kruskal_size);
+    }
+
+    // Compare results
+    printf("\n\n========================================\n");
+    printf("COMPARISON:\n");
+    printf("========================================\n\n");
+
+    if (prim_mst && kruskal_mst) {
+        int prim_total = 0, kruskal_total = 0;
+
+        for (int i = 0; i < prim_size; i++) {
+            prim_total += prim_mst[i].weight;
+        }
+        for (int i = 0; i < kruskal_size; i++) {
+            kruskal_total += kruskal_mst[i].weight;
+        }
+
+        printf("Prim's MST weight:     %d\n", prim_total);
+        printf("Kruskal's MST weight:  %d\n", kruskal_total);
+        printf("\n");
+
+        if (prim_total == kruskal_total) {
+            printf("✓ Both algorithms found MST with same total weight!\n");
+            printf("  (The actual edges may differ, but weight is optimal)\n");
+        } else {
+            printf("⚠ Different weights - this shouldn't happen!\n");
+        }
+    }
+
+    // Cleanup
+    if (prim_mst) free(prim_mst);
+    if (kruskal_mst) free(kruskal_mst);
+    graph_destroy(graph);
+}
+
+void test_mst_prim() {
+    printf("\n=== Test 11: Prim's Algorithm ===\n\n");
+
+    // Create a smaller graph for clearer visualization
+    Graph* graph = graph_create(5, UNDIRECTED, WEIGHTED, ADJACENCY_LIST);
+
+    graph_add_edge(graph, 0, 1, 2);
+    graph_add_edge(graph, 0, 3, 6);
+    graph_add_edge(graph, 1, 2, 3);
+    graph_add_edge(graph, 1, 3, 8);
+    graph_add_edge(graph, 1, 4, 5);
+    graph_add_edge(graph, 2, 4, 7);
+    graph_add_edge(graph, 3, 4, 9);
+
+    graph_display_info(graph);
+    graph_display_list(graph);
+    graph_display_visual(graph);
+
+    int mst_size;
+    Edge* mst = graph_prim_mst(graph, &mst_size);
+
+    if (mst) {
+        display_mst(mst, mst_size);
+        free(mst);
+    }
+
+    graph_destroy(graph);
+}
+
+void test_mst_kruskal() {
+    printf("\n=== Test 12: Kruskal's Algorithm ===\n\n");
+
+    // Create same graph as Prim's test for comparison
+    Graph* graph = graph_create(5, UNDIRECTED, WEIGHTED, ADJACENCY_LIST);
+
+    graph_add_edge(graph, 0, 1, 2);
+    graph_add_edge(graph, 0, 3, 6);
+    graph_add_edge(graph, 1, 2, 3);
+    graph_add_edge(graph, 1, 3, 8);
+    graph_add_edge(graph, 1, 4, 5);
+    graph_add_edge(graph, 2, 4, 7);
+    graph_add_edge(graph, 3, 4, 9);
+
+    graph_display_info(graph);
+    graph_display_list(graph);
+    graph_display_visual(graph);
+
+    int mst_size;
+    Edge* mst = graph_kruskal_mst(graph, &mst_size);
+
+    if (mst) {
+        display_mst(mst, mst_size);
+        free(mst);
+    }
+
+    graph_destroy(graph);
+}
+
 // ============================================================
 // MAIN
 // ============================================================
@@ -1018,13 +2188,22 @@ int main() {
 
     while (1) {
         printf("\n=== Graph Data Structure Menu ===\n");
+        printf("\nGraph Types:\n");
         printf("1. Complete Graph (Matrix representation)\n");
         printf("2. Sparse Graph (List representation)\n");
         printf("3. DAG - Directed Acyclic Graph (List)\n");
         printf("4. Bipartite Graph (List)\n");
         printf("5. Directed Weighted Graph (List)\n");
         printf("6. Comparison: Matrix vs List\n");
-        printf("x. Exit\n");
+        printf("\nShortest Path Algorithms:\n");
+        printf("7. BFS Shortest Path (Unweighted)\n");
+        printf("8. Dijkstra's Algorithm (Non-negative Weighted)\n");
+        printf("9. Bellman-Ford Algorithm (Negative Weights & Cycle Detection)\n");
+        printf("\nMinimum Spanning Tree (MST):\n");
+        printf("a. MST Comparison (Prim's vs Kruskal's)\n");
+        printf("b. Prim's Algorithm\n");
+        printf("c. Kruskal's Algorithm\n");
+        printf("\nx. Exit\n");
         printf("Enter choice: ");
         scanf(" %c", &choice);
 
@@ -1046,6 +2225,18 @@ int main() {
             test_directed_weighted();
         } else if (choice == '6') {
             test_comparison_matrix_vs_list();
+        } else if (choice == '7') {
+            test_bfs_shortest_path();
+        } else if (choice == '8') {
+            test_dijkstra();
+        } else if (choice == '9') {
+            test_bellman_ford();
+        } else if (choice == 'a') {
+            test_mst_comparison();
+        } else if (choice == 'b') {
+            test_mst_prim();
+        } else if (choice == 'c') {
+            test_mst_kruskal();
         } else {
             printf("Invalid choice\n");
         }
