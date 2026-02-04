@@ -8,6 +8,7 @@ all:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f linked_lists.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f stacks_and_queues.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f trees.mk
+	@$(MAKE) -C $(MAKEFILE_DIR) -f heap.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f list_search.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f dynamic_programming.mk
@@ -25,6 +26,9 @@ all:
 4_trees:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f trees.mk
 
+7_heap:
+	@$(MAKE) -C $(MAKEFILE_DIR) -f heap.mk
+
 skip_list:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk
 
@@ -40,6 +44,7 @@ clean:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f linked_lists.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f stacks_and_queues.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f trees.mk clean
+	@$(MAKE) -C $(MAKEFILE_DIR) -f heap.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f list_search.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f dynamic_programming.mk clean
@@ -56,6 +61,7 @@ help:
 	@echo "  2_linked_lists       - Build 2_linked_lists only"
 	@echo "  3_stacks_and_queues  - Build 3_stacks_and_queues only"
 	@echo "  4_trees              - Build 4_trees only"
+	@echo "  7_heap               - Build 7_heap only"
 	@echo "  skip_list            - Build skip_list only"
 	@echo "  list_search          - Build list_search only"
 	@echo "  dynamic_programming  - Build dynamic_programming only"
@@ -63,4 +69,4 @@ help:
 	@echo "  rebuild              - Clean and rebuild everything"
 	@echo "  help                 - Show this help message"
 
-.PHONY: all clean rebuild help 1_recursion 2_linked_lists 3_stacks_and_queues 4_trees skip_list list_search dynamic_programming
+.PHONY: all clean rebuild help 1_recursion 2_linked_lists 3_stacks_and_queues 4_trees 7_heap skip_list list_search dynamic_programming

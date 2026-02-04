@@ -11,9 +11,10 @@ A comprehensive collection of classic data structures and algorithms implemented
   - [2. Linked Lists](#2-linked-lists)
   - [3. Stacks and Queues](#3-stacks-and-queues)
   - [4. Trees](#4-trees)
-  - [5. Skip Lists](#5-skip-lists)
-  - [6. List Search Algorithms](#6-list-search-algorithms)
-  - [7. Dynamic Programming](#7-dynamic-programming)
+  - [5. Heaps](#5-heaps)
+  - [6. Skip Lists](#6-skip-lists)
+  - [7. List Search Algorithms](#7-list-search-algorithms)
+  - [8. Dynamic Programming](#8-dynamic-programming)
 - [Complexity Summary](#complexity-summary)
 
 ---
@@ -28,6 +29,7 @@ dsa_c/
 │   ├── 2_linked_lists.h
 │   ├── 3_stacks_and_queues.c
 │   ├── 4_trees.c
+│   ├── 7_heap.c
 │   ├── skip_list.c
 │   ├── list_search.c
 │   └── dynamic_programming.c
@@ -36,6 +38,7 @@ dsa_c/
 │   ├── linked_lists.mk
 │   ├── stacks_and_queues.mk
 │   ├── trees.mk
+│   ├── heap.mk
 │   ├── skip_list.mk
 │   ├── list_search.mk
 │   └── dynamic_programming.mk
@@ -74,6 +77,7 @@ make rebuild
 ./out/2_linked_lists
 ./out/3_stacks_and_queues
 ./out/4_trees
+./out/7_heap
 ./out/skip_list
 ./out/list_search
 ./out/dynamic_programming
@@ -920,7 +924,378 @@ void postorder(RBNode* x) {
 
 ---
 
-### 5. Skip Lists
+### 5. Heaps
+
+**File:** `src/7_heap.c`
+
+A binary max heap implemented using a dynamic array. Heaps are complete binary trees that maintain the heap property: each parent is greater than or equal to its children (max heap) or less than or equal to its children (min heap).
+
+#### What is a Heap?
+
+A **heap** is a specialized tree-based data structure that satisfies the **heap property**:
+- **Max heap:** Parent ≥ Children (root is maximum)
+- **Min heap:** Parent ≤ Children (root is minimum)
+
+**Key properties:**
+1. **Complete binary tree:** All levels filled except possibly the last, which fills left-to-right
+2. **Efficient array representation:** No pointer overhead needed
+3. **Height is O(log n):** Due to complete tree property
+
+#### Array Representation
+
+Heaps use arrays instead of node pointers. For any element at index `i`:
+
+```
+Parent index:      (i - 1) / 2
+Left child index:  2 * i + 1
+Right child index: 2 * i + 2
+```
+
+**Why use an array?**
+- No pointer overhead (more memory efficient than linked nodes)
+- Better cache locality (contiguous memory)
+- Simple index arithmetic for navigation
+- Complete tree property guarantees no wasted space
+
+**Example:** Array `[40, 30, 15, 10, 20]` represents:
+```
+       40
+      /  \
+    30    15
+   /  \
+  10  20
+```
+
+#### Data Structure
+
+```c
+typedef struct {
+    int* data;      // Dynamic array storing heap elements
+    int size;       // Current number of elements
+    int capacity;   // Maximum capacity
+} MaxHeap;
+```
+
+---
+
+#### Heap Operations
+
+##### Percolate Up (Bubble Up)
+
+**Purpose:** Restore heap property after insertion
+
+**Mechanism:**
+1. Insert new element at end (maintains complete tree)
+2. Compare with parent
+3. If child > parent, swap
+4. Repeat until heap property restored or reach root
+
+**Example:** Insert 50 into heap [40, 30, 15, 10, 20]
+```
+Step 1: Add at end
+       40
+      /  \
+    30    15
+   /  \   /
+  10  20 50   ← Violates heap property!
+
+Step 2: Compare 50 with parent 15
+       40
+      /  \
+    30    50    ← Swap
+   /  \   /
+  10  20 15
+
+Step 3: Compare 50 with parent 40
+       50         ← Swap
+      /  \
+    30    40
+   /  \   /
+  10  20 15
+```
+
+**Complexity:**
+- Time: O(log n) - at most height of tree
+- Space: O(1) - only a few variables
+
+##### Percolate Down (Heapify)
+
+**Purpose:** Restore heap property after extraction or during heap build
+
+**Mechanism:**
+1. Compare node with both children
+2. Find largest among node, left child, right child
+3. If node is not largest, swap with largest child
+4. Recursively heapify the affected subtree
+
+**Example:** Array [10, 30, 20, 15, 25] (root violates property)
+```
+Initial:
+       10         ← Too small!
+      /  \
+    30    20
+   /  \
+  15  25
+
+Step 1: Find largest (10, 30, 20) → 30
+       30
+      /  \
+    10    20
+   /  \
+  15  25
+
+Step 2: Find largest (10, 15, 25) → 25
+       30
+      /  \
+    25    20
+   /  \
+  15  10         ← Heap property restored!
+```
+
+**Complexity:**
+- Time: O(log n) - at most height of tree
+- Space: O(log n) - recursion depth
+
+##### Insert
+
+**Algorithm:**
+1. Add element at end of array (maintains complete tree)
+2. Increment size
+3. Percolate up to restore heap property
+
+**Complexity:** O(log n)
+
+##### Extract Max
+
+**Algorithm:**
+1. Save root element (maximum value)
+2. Move last element to root
+3. Decrement size
+4. Percolate down to restore heap property
+5. Return saved maximum
+
+**Why move last to root?**
+- Maintains complete tree property
+- Only creates one violation (at root)
+- More efficient than other approaches
+
+**Complexity:** O(log n)
+
+##### Peek Max
+
+Simply return root element without removing it.
+
+**Complexity:** O(1)
+
+---
+
+#### Build Heap from Array
+
+**Problem:** Given an unsorted array, convert it into a valid heap
+
+**Naive approach:** Insert elements one by one → O(n log n)
+
+**Optimal approach:** Heapify from bottom up → O(n)
+
+**Algorithm:**
+```c
+MaxHeap* heap_build_from_array(int arr[], int size) {
+    1. Copy all elements to heap array
+    2. Start from last non-leaf node: size/2 - 1
+    3. Heapify each node going backwards to root
+}
+```
+
+**Why start from size/2 - 1?**
+- Nodes from size/2 to size-1 are leaves (no children)
+- Leaves are already valid heaps (trivially)
+- We only need to heapify internal nodes
+
+**Example:** Build heap from [4, 10, 3, 5, 1]
+```
+Initial array:
+       4
+      / \
+    10   3
+   /  \
+  5    1
+
+Heapify index 1 (node 10):
+       4
+      / \
+    10   3      ← Already valid
+   /  \
+  5    1
+
+Heapify index 0 (node 4):
+       10
+      / \
+     5   3
+    / \
+   4   1        ← Valid max heap!
+```
+
+**Why O(n) and not O(n log n)?**
+- Most nodes are near the bottom (few percolations needed)
+- Mathematical proof: Sum of (nodes at level h) × (distance to move) = O(n)
+
+**Complexity:**
+- Time: O(n) - surprisingly linear!
+- Space: O(1) - in-place heapification
+
+---
+
+#### Heap Sort
+
+**Problem:** Sort array in ascending order using heap
+
+**Algorithm:**
+1. Build max heap from array - O(n)
+2. Repeatedly:
+   - Swap root (max) with last element
+   - Reduce heap size by 1
+   - Heapify root - O(log n)
+3. Repeat n times
+
+**Example:** Sort [12, 11, 13, 5, 6, 7]
+```
+Step 1: Build max heap
+Array: [13, 11, 12, 5, 6, 7]
+Heap:      13
+          /  \
+        11    12
+       /  \   /
+      5   6  7
+
+Step 2: Swap 13 with 7, heapify
+Array: [7, 11, 12, 5, 6 | 13]
+After heapify: [12, 11, 7, 5, 6 | 13]
+
+Step 3: Swap 12 with 6, heapify
+Array: [6, 11, 7, 5 | 12, 13]
+After heapify: [11, 6, 7, 5 | 12, 13]
+
+...continue until sorted...
+
+Final: [5, 6, 7, 11, 12, 13]
+```
+
+**Why it works:**
+- Max heap has largest element at root
+- Repeatedly extracting max gives sorted order (reversed)
+- Result is ascending order
+
+**Complexity:**
+- Time: O(n log n) - n extractions, each O(log n)
+- Space: O(1) - in-place sorting
+- Not stable (relative order of equal elements not preserved)
+
+**Comparison with other sorts:**
+| Algorithm | Average | Worst | Space | Stable |
+|-----------|---------|-------|-------|--------|
+| Heap Sort | O(n log n) | O(n log n) | O(1) | No |
+| Merge Sort | O(n log n) | O(n log n) | O(n) | Yes |
+| Quick Sort | O(n log n) | O(n²) | O(log n) | No |
+
+**Heap sort advantages:**
+- Guaranteed O(n log n) worst case (unlike quicksort)
+- In-place O(1) space (unlike merge sort)
+- Good for memory-constrained systems
+
+---
+
+#### Priority Queue Implementation
+
+**What is a Priority Queue?**
+A priority queue is an abstract data type where each element has a priority. Elements are dequeued in order of priority, not insertion order.
+
+**Operations:**
+- `insert(value, priority)` - Add element with priority
+- `extract_max()` - Remove and return highest priority element
+- `peek()` - View highest priority without removing
+
+**Heap as Priority Queue:**
+Max heaps naturally implement priority queues:
+- **Insert:** `heap_insert()` - O(log n)
+- **Extract Max:** `heap_extract_max()` - O(log n)
+- **Peek:** `heap_peek_max()` - O(1)
+
+**You don't need separate priority queue code - just use the max heap directly!**
+
+**Use cases:**
+- Task scheduling (OS schedulers)
+- Dijkstra's shortest path algorithm
+- Huffman coding
+- Event-driven simulation
+- A* pathfinding
+- Median maintenance
+
+**Example usage:**
+```c
+MaxHeap* pq = heap_create(100);
+
+// Insert tasks with priorities
+heap_insert(pq, 10);  // Priority 10
+heap_insert(pq, 50);  // Priority 50 (higher)
+heap_insert(pq, 20);  // Priority 20
+
+// Process highest priority first
+int highest = heap_extract_max(pq);  // Returns 50
+int next = heap_extract_max(pq);     // Returns 20
+```
+
+**Min heap for priority queue:**
+Our implementation is a max heap (highest priority first). For a min heap (lowest priority first), simply negate priorities or modify comparison operators.
+
+---
+
+#### Complexity Summary
+
+| Operation | Time | Space | Notes |
+|-----------|------|-------|-------|
+| Insert | O(log n) | O(1) | Percolate up |
+| Extract Max | O(log n) | O(1) | Percolate down |
+| Peek Max | O(1) | O(1) | Just read root |
+| Build Heap | O(n) | O(1) | Bottom-up heapify |
+| Heap Sort | O(n log n) | O(1) | In-place sorting |
+| Search | O(n) | O(1) | No ordering within levels |
+
+**Key insights:**
+- O(log n) for priority queue operations (insert/extract)
+- O(n) build heap (not O(n log n)!)
+- O(1) space for all operations (in-place)
+- Height always O(log n) (complete tree)
+
+---
+
+#### Heap Visualizations
+
+The implementation provides three display functions:
+
+1. **Array representation:** `heap_print_array()`
+   ```
+   [40, 30, 15, 10, 20]
+   ```
+
+2. **Level-order:** `heap_print_tree()`
+   ```
+   Level 0: 40
+   Level 1: 30 15
+   Level 2: 10 20
+   ```
+
+3. **Visual tree:** `heap_display_tree()`
+   ```
+    ┌──15
+   40
+        ┌──20
+    └──30
+        └──10
+   ```
+
+---
+
+### 6. Skip Lists
 
 **File:** `src/skip_list.c`
 
@@ -967,7 +1342,7 @@ Two implementations: Key-Value (map/dictionary) and Simple (sorted list).
 
 ---
 
-### 6. List Search Algorithms
+### 7. List Search Algorithms
 
 **File:** `src/list_search.c`
 
@@ -1054,7 +1429,7 @@ Result: 30→20→10
 
 ---
 
-### 7. Dynamic Programming
+### 8. Dynamic Programming
 
 **File:** `src/dynamic_programming.c`
 
@@ -1157,6 +1532,10 @@ Q . . .    ← Queen in column 0
 | Stack (2 queues) | - | O(n) | O(1) | O(n) | Inefficient push |
 | **Trees** | | | | | |
 | Red-Black Tree | O(log n) | O(log n) | O(log n) | O(n) | Self-balancing BST |
+| **Heaps** | | | | | |
+| Max/Min Heap | O(n) | O(log n) | O(log n) | O(n) | Priority queue |
+| Build Heap | - | - | - | O(n) | Linear time! |
+| Heap Sort | - | - | - | O(n log n) | In-place O(1) |
 | **Skip List** | O(log n) | O(log n) | O(log n) | O(n log n) | Probabilistic |
 | **Stack Algorithms** | | | | | |
 | Balanced symbols | O(n) | - | - | O(n) | Single pass |
@@ -1218,9 +1597,10 @@ Q . . .    ← Queen in column 0
 2. **Master Linked Lists** - Core dynamic data structure
 3. **Learn Stacks and Queues** - Essential for algorithm design
 4. **Understand Trees** - Self-balancing structures and rotations
-5. **Study Skip Lists** - Probabilistic alternative to balanced trees
-6. **Practice Two-Pointer Techniques** - Essential interview skill
-7. **Explore Dynamic Programming** - Advanced optimization
+5. **Master Heaps** - Priority queues and efficient sorting
+6. **Study Skip Lists** - Probabilistic alternative to balanced trees
+7. **Practice Two-Pointer Techniques** - Essential interview skill
+8. **Explore Dynamic Programming** - Advanced optimization
 
 ### Key Concepts to Understand:
 
