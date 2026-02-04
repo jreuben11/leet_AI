@@ -12,6 +12,7 @@ all:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f list_search.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f dynamic_programming.mk
+	@$(MAKE) -C $(MAKEFILE_DIR) -f graphs.mk
 
 # Individual program targets
 1_recursion:
@@ -38,6 +39,9 @@ list_search:
 dynamic_programming:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f dynamic_programming.mk
 
+9_graphs:
+	@$(MAKE) -C $(MAKEFILE_DIR) -f graphs.mk
+
 # Clean all build artifacts
 clean:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f recursion.mk clean
@@ -48,6 +52,7 @@ clean:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f skip_list.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f list_search.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f dynamic_programming.mk clean
+	@$(MAKE) -C $(MAKEFILE_DIR) -f graphs.mk clean
 	@rm -rf out
 
 # Rebuild everything from scratch
@@ -65,8 +70,9 @@ help:
 	@echo "  skip_list            - Build skip_list only"
 	@echo "  list_search          - Build list_search only"
 	@echo "  dynamic_programming  - Build dynamic_programming only"
+	@echo "  9_graphs             - Build 9_graphs only"
 	@echo "  clean                - Remove all build artifacts"
 	@echo "  rebuild              - Clean and rebuild everything"
 	@echo "  help                 - Show this help message"
 
-.PHONY: all clean rebuild help 1_recursion 2_linked_lists 3_stacks_and_queues 4_trees 7_heap skip_list list_search dynamic_programming
+.PHONY: all clean rebuild help 1_recursion 2_linked_lists 3_stacks_and_queues 4_trees 7_heap skip_list list_search dynamic_programming 9_graphs
