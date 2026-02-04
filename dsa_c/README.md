@@ -10,9 +10,10 @@ A comprehensive collection of classic data structures and algorithms implemented
   - [1. Recursion](#1-recursion)
   - [2. Linked Lists](#2-linked-lists)
   - [3. Stacks and Queues](#3-stacks-and-queues)
-  - [4. Skip Lists](#4-skip-lists)
-  - [5. List Search Algorithms](#5-list-search-algorithms)
-  - [6. Dynamic Programming](#6-dynamic-programming)
+  - [4. Trees](#4-trees)
+  - [5. Skip Lists](#5-skip-lists)
+  - [6. List Search Algorithms](#6-list-search-algorithms)
+  - [7. Dynamic Programming](#7-dynamic-programming)
 - [Complexity Summary](#complexity-summary)
 
 ---
@@ -26,6 +27,7 @@ dsa_c/
 │   ├── 2_linked_lists.c
 │   ├── 2_linked_lists.h
 │   ├── 3_stacks_and_queues.c
+│   ├── 4_trees.c
 │   ├── skip_list.c
 │   ├── list_search.c
 │   └── dynamic_programming.c
@@ -33,6 +35,7 @@ dsa_c/
 │   ├── recursion.mk
 │   ├── linked_lists.mk
 │   ├── stacks_and_queues.mk
+│   ├── trees.mk
 │   ├── skip_list.mk
 │   ├── list_search.mk
 │   └── dynamic_programming.mk
@@ -70,6 +73,7 @@ make rebuild
 ./out/1_recursion
 ./out/2_linked_lists
 ./out/3_stacks_and_queues
+./out/4_trees
 ./out/skip_list
 ./out/list_search
 ./out/dynamic_programming
@@ -622,7 +626,301 @@ Insert 50 at bottom means:
 
 ---
 
-### 4. Skip Lists
+### 4. Trees
+
+**File:** `src/4_trees.c`
+
+Self-balancing binary search tree with guaranteed O(log n) operations.
+
+#### Red-Black Tree Properties
+
+A red-black tree is a binary search tree with additional color properties that ensure balance:
+
+1. **Every node is either red or black**
+2. **Root is always black**
+3. **All leaves (NIL) are black**
+4. **Red nodes cannot have red children** (no two red nodes in a row)
+5. **All paths from root to leaves contain the same number of black nodes**
+
+**Why these properties?**
+- Property 4 prevents long red chains
+- Property 5 ensures no path is more than twice as long as any other
+- Result: Height is guaranteed to be ≤ 2 × log₂(n+1)
+
+#### Data Structure
+
+```c
+typedef enum { RED, BLACK } Color;
+
+typedef struct RBNode {
+    int data;
+    Color color;
+    struct RBNode* left;
+    struct RBNode* right;
+    struct RBNode* parent;  // Needed for efficient rotations
+} RBNode;
+
+typedef struct {
+    RBNode* root;
+    RBNode* nil;  // Sentinel node (always black, represents NULL)
+} RBTree;
+```
+
+**Why a sentinel NIL node?**
+- Simplifies code (no NULL checks needed)
+- All leaf pointers point to same NIL node
+- NIL's color is always BLACK (satisfies property 3)
+
+---
+
+#### Insertion
+
+**Mechanism:**
+1. Insert like normal BST (find position)
+2. Color new node RED (preserves property 5 - black height)
+3. Fix violations with rotations and recoloring
+
+**Why insert RED?**
+- Inserting BLACK would violate property 5 (black height)
+- Inserting RED only potentially violates property 4 (red-red)
+- Easier to fix property 4 than property 5
+
+**Insertion Fixup Cases:**
+
+After inserting a RED node, we may have a red-red violation (red node with red parent).
+
+**Case 1: Uncle is RED**
+```
+Action: Recolor parent, uncle, grandparent
+        Grandparent becomes RED
+        Parent and Uncle become BLACK
+        Continue checking from grandparent
+```
+
+**Case 2: Uncle is BLACK (triangle configuration)**
+```
+Example: z is right child, parent is left child
+Action: Rotate z's parent to convert to line case
+        Then apply Case 3
+```
+
+**Case 3: Uncle is BLACK (line configuration)**
+```
+Example: z is left child, parent is left child
+Action: Right rotate grandparent
+        Recolor original parent and grandparent
+```
+
+**Example: Insert 10, 20, 30**
+
+```
+Insert 10:
+  10(B)  (root is always black)
+
+Insert 20:
+  10(B)
+    \
+    20(R)  (new nodes are red)
+
+Insert 30:
+  10(B)
+    \
+    20(R)
+      \
+      30(R)  ← Red-red violation!
+
+Fix (Case 3 - left rotation on 10):
+    20(B)
+   /  \
+ 10(R) 30(R)  ← Balanced!
+```
+
+**Complexity:**
+- Time: O(log n) - height is O(log n), constant rotations
+- Space: O(1) - only modifying pointers
+
+---
+
+#### Deletion
+
+**Mechanism:**
+1. Find node to delete (BST search)
+2. Remove node (BST deletion)
+3. If deleted node was BLACK, fix violations
+
+**Why only fix if BLACK?**
+- Deleting RED doesn't violate any properties
+- Deleting BLACK violates property 5 (black height)
+
+**Deletion Cases:**
+
+When we remove a BLACK node, we have a "double black" problem.
+
+**Case 1: Sibling is RED**
+```
+Action: Rotate parent, recolor
+        Converts to Case 2, 3, or 4
+```
+
+**Case 2: Sibling and both nephews are BLACK**
+```
+Action: Recolor sibling to RED
+        Move double-black up to parent
+```
+
+**Case 3: Sibling is BLACK, far nephew is BLACK**
+```
+Action: Rotate sibling, recolor
+        Converts to Case 4
+```
+
+**Case 4: Sibling is BLACK, far nephew is RED**
+```
+Action: Rotate parent, recolor
+        Fixes the double-black problem
+```
+
+**Complexity:**
+- Time: O(log n) - height is O(log n), constant rotations
+- Space: O(1) - only modifying pointers
+
+---
+
+#### Rotations
+
+Rotations maintain BST property while restructuring the tree.
+
+**Left Rotation:**
+```
+Before:        After:
+   x             y
+  / \           / \
+ a   y    =>   x   c
+    / \       / \
+   b   c     a   b
+
+Preserves: a < x < b < y < c
+```
+
+**Right Rotation:**
+```
+Before:        After:
+    y            x
+   / \          / \
+  x   c   =>   a   y
+ / \              / \
+a   b            b   c
+
+Preserves: a < x < b < y < c
+```
+
+**When used:**
+- Insertion fixup: Convert triangle to line, then rotate
+- Deletion fixup: Restore balance after removing black node
+
+**Complexity:** O(1) - constant pointer updates
+
+---
+
+#### Recursive Traversals
+
+##### Inorder (Left → Root → Right)
+
+```c
+void inorder(RBNode* x) {
+    if (x != NIL) {
+        inorder(x->left);
+        visit(x);
+        inorder(x->right);
+    }
+}
+```
+
+**Result:** Values in sorted order
+- Example: `1(R) 5(B) 10(R) 15(B) 20(B) 25(R) 30(B)`
+- **Use case:** Print sorted values, validate BST property
+
+**Complexity:**
+- Time: O(n) - visit each node once
+- Space: O(h) - recursion stack, h = height = O(log n)
+
+##### Preorder (Root → Left → Right)
+
+```c
+void preorder(RBNode* x) {
+    if (x != NIL) {
+        visit(x);
+        preorder(x->left);
+        preorder(x->right);
+    }
+}
+```
+
+**Result:** Root before subtrees
+- Example: `20(B) 10(R) 5(B) 1(R) 15(B) 30(B) 25(R)`
+- **Use case:** Copy tree structure, serialize tree
+
+**Complexity:** Same as inorder
+
+##### Postorder (Left → Right → Root)
+
+```c
+void postorder(RBNode* x) {
+    if (x != NIL) {
+        postorder(x->left);
+        postorder(x->right);
+        visit(x);
+    }
+}
+```
+
+**Result:** Root after subtrees
+- Example: `1(R) 5(B) 15(B) 10(R) 25(R) 30(B) 20(B)`
+- **Use case:** Delete tree (free children before parent)
+
+**Complexity:** Same as inorder
+
+---
+
+#### Complexity Summary
+
+| Operation | Time | Space | Notes |
+|-----------|------|-------|-------|
+| Search | O(log n) | O(1) | Height guaranteed ≤ 2log₂(n+1) |
+| Insert | O(log n) | O(1) | At most 2 rotations |
+| Delete | O(log n) | O(1) | At most 3 rotations |
+| Inorder | O(n) | O(log n) | Recursion stack |
+| Preorder | O(n) | O(log n) | Recursion stack |
+| Postorder | O(n) | O(log n) | Recursion stack |
+| Height | O(n) | O(log n) | Must visit all nodes |
+
+**Key advantage over regular BST:**
+- Regular BST: O(n) worst case (degenerates to linked list)
+- Red-Black Tree: O(log n) guaranteed (self-balancing)
+
+---
+
+#### Red-Black Tree vs Other Structures
+
+| Feature | Red-Black Tree | AVL Tree | Skip List |
+|---------|---------------|----------|-----------|
+| Search | O(log n) | O(log n) | O(log n) avg |
+| Insert | O(log n) | O(log n) | O(log n) avg |
+| Delete | O(log n) | O(log n) | O(log n) avg |
+| Balance | Less strict | More strict | Probabilistic |
+| Rotations (insert) | ≤ 2 | ≤ 2 | 0 |
+| Rotations (delete) | ≤ 3 | ≤ log n | 0 |
+| Implementation | Complex | More complex | Simpler |
+| Used in | Linux kernel, STL | Databases | MemSQL, Redis |
+
+**When to use Red-Black Trees:**
+- Need guaranteed O(log n) operations
+- More inserts/deletes than AVL (fewer rotations)
+- Industry standard for balanced BSTs
+
+---
+
+### 5. Skip Lists
 
 **File:** `src/skip_list.c`
 
@@ -669,7 +967,7 @@ Two implementations: Key-Value (map/dictionary) and Simple (sorted list).
 
 ---
 
-### 5. List Search Algorithms
+### 6. List Search Algorithms
 
 **File:** `src/list_search.c`
 
@@ -756,7 +1054,7 @@ Result: 30→20→10
 
 ---
 
-### 6. Dynamic Programming
+### 7. Dynamic Programming
 
 **File:** `src/dynamic_programming.c`
 
@@ -857,6 +1155,8 @@ Q . . .    ← Queen in column 0
 | List-based Queue | - | O(1) | O(1) | O(n) | Front/rear pointers |
 | Queue (2 stacks) | - | O(1) | O(1)† | O(n) | †amortized |
 | Stack (2 queues) | - | O(n) | O(1) | O(n) | Inefficient push |
+| **Trees** | | | | | |
+| Red-Black Tree | O(log n) | O(log n) | O(log n) | O(n) | Self-balancing BST |
 | **Skip List** | O(log n) | O(log n) | O(log n) | O(n log n) | Probabilistic |
 | **Stack Algorithms** | | | | | |
 | Balanced symbols | O(n) | - | - | O(n) | Single pass |
@@ -917,9 +1217,10 @@ Q . . .    ← Queen in column 0
 1. **Start with Recursion** - Foundation for many algorithms
 2. **Master Linked Lists** - Core dynamic data structure
 3. **Learn Stacks and Queues** - Essential for algorithm design
-4. **Study Skip Lists** - Bridge to tree-like structures
-5. **Practice Two-Pointer Techniques** - Essential interview skill
-6. **Explore Dynamic Programming** - Advanced optimization
+4. **Understand Trees** - Self-balancing structures and rotations
+5. **Study Skip Lists** - Probabilistic alternative to balanced trees
+6. **Practice Two-Pointer Techniques** - Essential interview skill
+7. **Explore Dynamic Programming** - Advanced optimization
 
 ### Key Concepts to Understand:
 
