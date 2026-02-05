@@ -17,6 +17,7 @@ A comprehensive collection of classic data structures and algorithms implemented
   - [8. Dynamic Programming](#8-dynamic-programming)
   - [9. Graphs and Shortest Path Algorithms](#9-graphs-and-shortest-path-algorithms)
   - [10. Hash Tables](#10-hash-tables)
+  - [11. Sorting Algorithms](#11-sorting-algorithms)
 - [Complexity Summary](#complexity-summary)
 
 ---
@@ -31,23 +32,25 @@ dsa_c/
 │   ├── 2_linked_lists.h
 │   ├── 3_stacks_and_queues.c
 │   ├── 4_trees.c
-│   ├── 7_heap.c
-│   ├── skip_list.c
-│   ├── list_search.c
-│   ├── dynamic_programming.c
+│   ├── 5_heap.c
+│   ├── 6_skip_list.c
+│   ├── 7_list_search.c
+│   ├── 8_dynamic_programming.c
 │   ├── 9_graphs.c
-│   └── 10_hash_tables.c
+│   ├── 10_hash_tables.c
+│   └── 11_sort.c
 ├── makefiles/              # Build configurations
 │   ├── recursion.mk
 │   ├── linked_lists.mk
 │   ├── stacks_and_queues.mk
 │   ├── trees.mk
-│   ├── heap.mk
-│   ├── skip_list.mk
-│   ├── list_search.mk
-│   ├── dynamic_programming.mk
+│   ├── 5_heap.mk
+│   ├── 6_skip_list.mk
+│   ├── 7_list_search.mk
+│   ├── 8_dynamic_programming.mk
 │   ├── graphs.mk
-│   └── hash_tables.mk
+│   ├── hash_tables.mk
+│   └── sort.mk
 ├── out/                    # Compiled binaries and visualizations
 ├── Makefile               # Master build file
 └── compile_and_run.sh     # Interactive build & run script
@@ -64,7 +67,7 @@ dsa_c/
 bash compile_and_run.sh
 
 # Build specific program
-make skip_list
+make 6_skip_list
 
 # Build all
 make
@@ -83,12 +86,13 @@ make rebuild
 ./out/2_linked_lists
 ./out/3_stacks_and_queues
 ./out/4_trees
-./out/7_heap
-./out/skip_list
-./out/list_search
-./out/dynamic_programming
+./out/5_heap
+./out/6_skip_list
+./out/7_list_search
+./out/8_dynamic_programming
 ./out/9_graphs
 ./out/10_hash_tables
+./out/11_sort
 ```
 
 ---
@@ -2092,6 +2096,168 @@ Sparse (E = 5,000):
 
 ---
 
+#### Advanced Graph Algorithms
+
+##### Topological Sort - Kahn's Algorithm
+
+**What is Topological Sort?**
+
+A linear ordering of vertices in a DAG (Directed Acyclic Graph) where:
+- For every edge u → v, vertex u comes before v in the ordering
+- Only works on DAGs (no cycles!)
+
+**Real-world applications:**
+- **Course prerequisites** - take Data Structures before Algorithms
+- **Build systems** - compile dependencies before main program
+- **Task scheduling** - finish prerequisite tasks first
+- **Package managers** - install dependencies before package
+
+**Example:**
+```
+Graph:  0 → 1 → 3
+        ↓       ↑
+        2 ------┘
+
+Valid orderings: [0, 1, 2, 3] or [0, 2, 1, 3]
+Invalid: [1, 0, 2, 3] (1 before 0, but 0→1 exists)
+```
+
+**Kahn's Algorithm (BFS-based):**
+
+```
+1. Calculate in-degree for each vertex
+2. Add vertices with in-degree 0 to queue (no dependencies)
+3. While queue not empty:
+   a. Remove vertex, add to result
+   b. Reduce in-degree of neighbors
+   c. If neighbor's in-degree becomes 0, add to queue
+4. If processed all vertices → success
+   Else → cycle detected
+```
+
+**Why it works:**
+- Vertices with in-degree 0 have no dependencies → safe to process
+- Removing a vertex = satisfying its dependency for neighbors
+- If can't process all vertices → cycle blocks progress
+
+**Time Complexity:** O(V + E)
+- Calculate in-degrees: O(V + E)
+- Process each vertex once: O(V)
+- Process each edge once: O(E)
+
+**Space Complexity:** O(V)
+
+**Cycle Detection:**
+- If result contains all V vertices → valid topological order
+- Otherwise → cycle exists, no valid ordering
+
+---
+
+##### Floyd-Warshall - All-Pairs Shortest Paths
+
+**What is Floyd-Warshall?**
+
+Finds shortest paths between **all pairs** of vertices.
+
+Unlike Dijkstra (single-source) or BFS (single-source, unweighted), Floyd-Warshall computes distances from every vertex to every other vertex in one go.
+
+**When to use:**
+- ✅ Need distances between **all pairs**
+- ✅ Dense graphs (many edges)
+- ✅ **Negative weights** allowed
+- ✅ Graph fits in memory (O(V²) space)
+
+**When NOT to use:**
+- ❌ Only need single-source paths (use Dijkstra/Bellman-Ford instead)
+- ❌ Sparse graphs with single query (Dijkstra is faster)
+- ❌ Very large graphs (O(V³) time prohibitive)
+
+**Algorithm Intuition:**
+
+Dynamic Programming with intermediate vertices:
+
+```
+dist[i][j][k] = shortest path from i to j using {0,1,...,k}
+
+Recurrence:
+dist[i][j][k] = min(
+    dist[i][j][k-1],                    // Don't use k
+    dist[i][k][k-1] + dist[k][j][k-1]  // Go through k
+)
+
+Space optimization: update 2D array in-place
+dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j])
+```
+
+**Algorithm Steps:**
+
+```
+1. Initialize distance matrix:
+   - dist[i][i] = 0 (distance to self)
+   - dist[i][j] = weight(i,j) if edge exists
+   - dist[i][j] = ∞ otherwise
+
+2. For each intermediate vertex k (0 to V-1):
+     For each pair (i, j):
+       Try path i → k → j
+       If shorter than current dist[i][j], update
+
+3. Check diagonal for negative cycles:
+   If dist[i][i] < 0 → negative cycle exists
+```
+
+**Example:**
+```
+Initial (direct edges):
+     0   1   2   3
+0 [  0   5  ∞  10 ]
+1 [ ∞   0   3  ∞  ]
+2 [ ∞  ∞   0   1  ]
+3 [ ∞  ∞  ∞   0  ]
+
+After k=1 (paths through vertex 1):
+dist[0][2] = min(∞, dist[0][1] + dist[1][2])
+           = min(∞, 5 + 3) = 8  ✓ Update!
+
+After k=2 (paths through vertex 2):
+dist[0][3] = min(10, dist[0][2] + dist[2][3])
+           = min(10, 8 + 1) = 9  ✓ Better!
+
+Final (all-pairs shortest):
+     0   1   2   3
+0 [  0   5   8   9 ]
+1 [ ∞   0   3   4 ]
+2 [ ∞  ∞   0   1 ]
+3 [ ∞  ∞  ∞   0 ]
+```
+
+**Time Complexity:** O(V³)
+- Three nested loops over all vertices
+- Simple but can be slow for large graphs
+
+**Space Complexity:** O(V²)
+- Distance matrix: V × V
+
+**Comparison:**
+```
+Single-source queries:
+  Dijkstra: O((V+E) log V)  ← Better for single query
+
+All-pairs queries:
+  Run Dijkstra V times: O(V² log V + VE log V) ≈ O(V³ log V) dense
+  Floyd-Warshall:       O(V³)                  ← Simpler, handles negatives
+```
+
+**Key Features:**
+- ✅ Handles **negative weights** (unlike Dijkstra)
+- ✅ **Detects negative cycles**
+- ✅ Simple implementation (3 nested loops)
+- ✅ Returns complete distance matrix
+- ❌ Slower than repeated Dijkstra for sparse graphs
+- ❌ High memory usage O(V²)
+
+---
+
 **Graph types supported:**
 - ✅ Directed and Undirected
 - ✅ Weighted and Unweighted
@@ -2110,11 +2276,15 @@ Sparse (E = 5,000):
 - `graph_bfs_shortest_path()` - BFS for unweighted graphs (guarantees shortest path)
 - `graph_dijkstra()` - For non-negative weighted graphs (greedy, optimal)
 - `graph_bellman_ford()` - For graphs with negative weights + cycle detection
+- `graph_floyd_warshall()` - All-pairs shortest paths (handles negatives, detects cycles)
 
 **Minimum Spanning Tree (MST) algorithms:**
 - `graph_prim_mst()` - Vertex-based MST (best for dense graphs)
 - `graph_kruskal_mst()` - Edge-based MST with Union-Find (best for sparse)
 - Full Union-Find implementation with path compression and union by rank
+
+**Advanced graph algorithms:**
+- `graph_topological_sort_kahn()` - Topological ordering for DAGs (Kahn's algorithm)
 
 **Graph properties:**
 - `graph_is_bipartite()` - 2-coloring algorithm, O(V+E)
@@ -2124,8 +2294,10 @@ Sparse (E = 5,000):
 - BFS: Time O(V + E), Space O(V) - fastest, unweighted only
 - Dijkstra: Time O((V+E) log V), Space O(V) - fast, non-negative weights
 - Bellman-Ford: Time O(V × E), Space O(V) - slower, handles negatives
+- Floyd-Warshall: Time O(V³), Space O(V²) - all-pairs, handles negatives
 - Prim's: Time O(V²) or O((V+E) log V), Space O(V) - dense graphs
 - Kruskal's: Time O(E log E), Space O(V + E) - sparse graphs
+- Topological Sort: Time O(V + E), Space O(V) - DAGs only
 
 ---
 
@@ -2277,6 +2449,219 @@ Bucket 3: [key4=val4] → [key5=val5] → [key6=val6] → NULL
 
 ---
 
+### 11. Sorting Algorithms
+
+**File:** `src/11_sort.c`
+
+Comprehensive implementation of four different sorting approaches, each optimized for different scenarios.
+
+#### Algorithms Implemented
+
+##### 1. Merge Sort (Linked List)
+
+**Perfect for linked lists** - no random access needed!
+
+**How it works:**
+```
+DIVIDE:  Split list in half (slow/fast pointer)
+CONQUER: Recursively sort both halves
+COMBINE: Merge two sorted lists
+```
+
+**Example:**
+```
+[4 → 2 → 1 → 3]
+
+Split:     [4 → 2]  [1 → 3]
+Split:     [4] [2]  [1] [3]
+Merge:     [2 → 4]  [1 → 3]
+Merge:     [1 → 2 → 3 → 4]
+```
+
+**Complexity:**
+- Time: **O(n log n)** - guaranteed, no worst case
+- Space: **O(log n)** - recursion stack only
+- Stable: **YES**
+
+**Why for linked lists:**
+- ✅ No random access needed (unlike Quicksort)
+- ✅ Sequential access perfect for linked structures
+- ✅ In-place merging (no extra arrays)
+- ✅ Guaranteed O(n log n) performance
+
+---
+
+##### 2. Quicksort (Array)
+
+**Fast in-place array sorting** - industry standard.
+
+**How it works:**
+```
+PARTITION: Choose pivot, rearrange so:
+           [< pivot] pivot [> pivot]
+RECURSE:   Sort left and right subarrays
+```
+
+**Partitioning (Lomuto scheme):**
+```
+[3, 7, 8, 5, 2, 1, 9]  pivot=9
+
+i tracks position for small elements
+When arr[j] < pivot: swap(arr[++i], arr[j])
+Finally: place pivot at i+1
+```
+
+**Complexity:**
+- Time: **O(n log n)** average, **O(n²)** worst
+- Space: **O(log n)** - recursion stack
+- Stable: **NO**
+
+**Why for arrays:**
+- ✅ In-place sorting (minimal extra space)
+- ✅ Cache-friendly (good locality)
+- ✅ Fast average case
+- ✅ Widely used (stdlib qsort)
+
+**When worst case O(n²):**
+- Already sorted array
+- Pivot always min/max
+- Solution: randomized pivot or median-of-three
+
+---
+
+##### 3. Bucket Sort (Integers 0-k)
+
+**Linear time for bounded integers** - distribution sort.
+
+**How it works:**
+```
+1. CREATE: Array of k+1 buckets
+2. COUNT:  For each value x: bucket[x]++
+3. GATHER: Output each value bucket[i] times
+```
+
+**Example (range 0-9):**
+```
+Input: [3, 1, 4, 1, 5, 9, 2, 6]
+
+Buckets:
+  0:0  1:2  2:1  3:1  4:1  5:1  6:1  7:0  8:0  9:1
+       ↑ appears twice
+
+Output: [1, 1, 2, 3, 4, 5, 6, 9]
+```
+
+**Complexity:**
+- Time: **O(n + k)** - linear when k = O(n)!
+- Space: **O(k)** - bucket array
+- Stable: **YES**
+
+**When to use:**
+- ✅ Know range [0, k] in advance
+- ✅ Uniform distribution
+- ✅ k = O(n) (not too large)
+- Example: Sorting exam scores (0-100), ages (0-150)
+
+**When NOT to use:**
+- ❌ Unknown range
+- ❌ k >> n (wastes space)
+- ❌ Non-integer keys
+
+---
+
+##### 4. Bitonic Sort (Parallel)
+
+**Hardware sorting network** - designed for GPUs and parallel architectures.
+
+**What is Bitonic Sequence?**
+```
+First increases, then decreases:
+[1, 3, 5, 7, 6, 4, 2]  ← bitonic!
+
+NOT bitonic (multiple peaks):
+[1, 3, 2, 4, 3, 5]
+```
+
+**How it works:**
+```
+BUILD:  Create bitonic sequences from pairs
+        [3,7] [4,8] [6,2] [1,5]  ← sort pairs
+        [3,4,7,8↓] [6,5,2,1↑]    ← merge to bitonic
+
+MERGE:  Bitonic merge operation
+        Compare/swap at distance d
+        Creates sorted sequence
+```
+
+**Complexity:**
+- Time: **O(n log² n)** sequential (worse than merge sort!)
+- Time: **O(log² n)** parallel with n processors
+- Space: **O(log n)**
+- Requires: **n = power of 2**
+
+**Why Bitonic Sort:**
+- ✅ Highly parallelizable
+- ✅ Data-oblivious (predictable comparisons)
+- ✅ Perfect for GPUs and hardware networks
+- ❌ NOT for sequential CPU (use quicksort/mergesort)
+- ❌ Requires power-of-2 size
+
+**Use cases:**
+- GPU sorting (CUDA, OpenCL)
+- Hardware sorting circuits
+- Parallel sorting on multi-core systems
+- NOT for general sequential sorting
+
+---
+
+#### Algorithm Comparison
+
+| Algorithm | Best | Average | Worst | Space | Stable | Best For |
+|-----------|------|---------|-------|-------|--------|----------|
+| **Merge Sort** | O(n log n) | O(n log n) | O(n log n) | O(log n) | YES | Linked lists, guaranteed |
+| **Quicksort** | O(n log n) | O(n log n) | O(n²) | O(log n) | NO | Arrays, in-place |
+| **Bucket Sort** | O(n+k) | O(n+k) | O(n+k) | O(k) | YES | Bounded integers |
+| **Bitonic Sort** | O(n log² n) | O(n log² n) | O(n log² n) | O(log n) | NO | Parallel hardware |
+
+**When to use which:**
+
+```
+Linked list?              → Merge Sort
+Array, general-purpose?   → Quicksort
+Bounded integers [0, k]?  → Bucket Sort
+GPU/parallel hardware?    → Bitonic Sort
+Need stability?           → Merge or Bucket
+Need O(n log n) guarantee?→ Merge Sort
+Need in-place array sort? → Quicksort
+```
+
+---
+
+#### Key Concepts
+
+**Stability:**
+- Stable: Equal elements maintain relative order
+- Merge Sort, Bucket Sort: stable
+- Quicksort, Bitonic: not stable
+
+**In-place:**
+- Quicksort: in-place (O(log n) stack)
+- Merge Sort (array): NOT in-place, needs temp
+- Merge Sort (list): in-place!
+- Bucket Sort: NOT in-place (needs buckets)
+
+**Divide-and-Conquer:**
+- Merge Sort: split, recurse, merge
+- Quicksort: partition, recurse
+- Bitonic: build bitonic sequences, merge
+
+**Distribution Sort:**
+- Bucket Sort: distribute into buckets
+- Linear time possible!
+- Requires knowledge of data range
+
+---
+
 ### Quick Reference Table
 
 | Data Structure/Algorithm | Search | Insert | Delete | Space | Notes |
@@ -2318,12 +2703,19 @@ Bucket 3: [key4=val4] → [key5=val5] → [key6=val6] → NULL
 | BFS (unweighted) | O(V+E) | - | - | O(V) | Shortest path |
 | Dijkstra | O((V+E)logV) | - | - | O(V) | Non-negative weights |
 | Bellman-Ford | O(V×E) | - | - | O(V) | Handles negative weights |
+| Floyd-Warshall | O(V³) | - | - | O(V²) | All-pairs shortest paths |
+| Topological Sort | O(V+E) | - | - | O(V) | DAGs only, Kahn's algorithm |
 | Prim's MST | O(V²) or O((V+E)logV) | - | - | O(V) | Dense graphs |
 | Kruskal's MST | O(E log E) | - | - | O(V+E) | Sparse graphs |
 | Union-Find | O(α(V)) | - | - | O(V) | α ≈ constant |
 | **Hash Tables** | | | | | |
 | Hash Table (chaining) | O(1) avg, O(n) worst | O(1) avg | O(1) avg | O(n+m) | m = table size |
 | Hash Function | O(k) | - | - | O(1) | k = key length |
+| **Sorting** | | | | | |
+| Merge Sort (list) | - | - | - | O(log n) | O(n log n) time, stable |
+| Quicksort (array) | - | - | - | O(log n) | O(n log n) avg, in-place |
+| Bucket Sort | - | - | - | O(k) | O(n+k) time, k=range |
+| Bitonic Sort | - | - | - | O(log n) | O(n log² n), parallel |
 
 ### Space Complexity Notes:
 
@@ -2377,6 +2769,7 @@ Bucket 3: [key4=val4] → [key5=val5] → [key6=val6] → NULL
 8. **Explore Dynamic Programming** - Advanced optimization
 9. **Master Graphs** - Shortest paths, DFS/BFS, real-world networks
 10. **Understand Hash Tables** - O(1) lookups, collision resolution, hash functions
+11. **Study Sorting Algorithms** - Compare approaches, understand trade-offs
 
 ### Key Concepts to Understand:
 

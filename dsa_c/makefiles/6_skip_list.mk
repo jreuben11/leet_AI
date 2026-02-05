@@ -4,14 +4,14 @@ CC = gcc
 CFLAGS = -Wall -Wextra
 SRCDIR = ../src
 OUTDIR = ../out
-TARGET = $(OUTDIR)/skip_list
+TARGET = $(OUTDIR)/6_skip_list
 
 all: $(OUTDIR) $(TARGET)
 
 $(OUTDIR):
 	mkdir -p $(OUTDIR)
 
-$(TARGET): $(SRCDIR)/skip_list.c
+$(TARGET): $(SRCDIR)/6_skip_list.c
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:

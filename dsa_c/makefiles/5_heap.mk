@@ -1,18 +1,18 @@
-# Makefile for dynamic_programming
+# Makefile for heap
 
 CC = gcc
 CFLAGS = -Wall -Wextra
 SRCDIR = ../src
 OUTDIR = ../out
-TARGET = $(OUTDIR)/dynamic_programming
+TARGET = $(OUTDIR)/5_heap
 
 all: $(OUTDIR) $(TARGET)
 
 $(OUTDIR):
 	mkdir -p $(OUTDIR)
 
-$(TARGET): $(SRCDIR)/dynamic_programming.c
-	$(CC) $(CFLAGS) $< -o $@
+$(TARGET): $(SRCDIR)/5_heap.c
+	$(CC) $(CFLAGS) $(SRCDIR)/5_heap.c -o $@
 
 clean:
 	rm -f $(TARGET)
