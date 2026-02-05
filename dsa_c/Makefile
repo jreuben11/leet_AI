@@ -15,6 +15,7 @@ all:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f graphs.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f hash_tables.mk
 	@$(MAKE) -C $(MAKEFILE_DIR) -f sort.mk
+	@$(MAKE) -C $(MAKEFILE_DIR) -f 12_strings.mk
 
 # Individual program targets
 1_recursion:
@@ -50,6 +51,9 @@ all:
 11_sort:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f sort.mk
 
+12_strings:
+	@$(MAKE) -C $(MAKEFILE_DIR) -f 12_strings.mk
+
 # Clean all build artifacts
 clean:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f recursion.mk clean
@@ -63,6 +67,7 @@ clean:
 	@$(MAKE) -C $(MAKEFILE_DIR) -f graphs.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f hash_tables.mk clean
 	@$(MAKE) -C $(MAKEFILE_DIR) -f sort.mk clean
+	@$(MAKE) -C $(MAKEFILE_DIR) -f 12_strings.mk clean
 	@rm -rf out
 
 # Rebuild everything from scratch
@@ -83,8 +88,9 @@ help:
 	@echo "  9_graphs             - Build 9_graphs only"
 	@echo "  10_hash_tables       - Build 10_hash_tables only"
 	@echo "  11_sort              - Build 11_sort only"
+	@echo "  12_strings           - Build 12_strings only"
 	@echo "  clean                - Remove all build artifacts"
 	@echo "  rebuild              - Clean and rebuild everything"
 	@echo "  help                 - Show this help message"
 
-.PHONY: all clean rebuild help 1_recursion 2_linked_lists 3_stacks_and_queues 4_trees 5_heap 6_skip_list 7_list_search 8_dynamic_programming 9_graphs 10_hash_tables 11_sort
+.PHONY: all clean rebuild help 1_recursion 2_linked_lists 3_stacks_and_queues 4_trees 5_heap 6_skip_list 7_list_search 8_dynamic_programming 9_graphs 10_hash_tables 11_sort 12_strings

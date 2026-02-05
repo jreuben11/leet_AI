@@ -18,6 +18,7 @@ A comprehensive collection of classic data structures and algorithms implemented
   - [9. Graphs and Shortest Path Algorithms](#9-graphs-and-shortest-path-algorithms)
   - [10. Hash Tables](#10-hash-tables)
   - [11. Sorting Algorithms](#11-sorting-algorithms)
+  - [12. String Algorithms](#12-string-algorithms)
 - [Complexity Summary](#complexity-summary)
 
 ---
@@ -38,7 +39,8 @@ dsa_c/
 │   ├── 8_dynamic_programming.c
 │   ├── 9_graphs.c
 │   ├── 10_hash_tables.c
-│   └── 11_sort.c
+│   ├── 11_sort.c
+│   └── 12_strings.c
 ├── makefiles/              # Build configurations
 │   ├── recursion.mk
 │   ├── linked_lists.mk
@@ -50,7 +52,8 @@ dsa_c/
 │   ├── 8_dynamic_programming.mk
 │   ├── graphs.mk
 │   ├── hash_tables.mk
-│   └── sort.mk
+│   ├── sort.mk
+│   └── 12_strings.mk
 ├── out/                    # Compiled binaries and visualizations
 ├── Makefile               # Master build file
 └── compile_and_run.sh     # Interactive build & run script
@@ -93,6 +96,7 @@ make rebuild
 ./out/9_graphs
 ./out/10_hash_tables
 ./out/11_sort
+./out/12_strings
 ```
 
 ---
@@ -2662,6 +2666,587 @@ Need in-place array sort? → Quicksort
 
 ---
 
+### 12. String Algorithms
+
+String algorithms are fundamental for text processing, pattern matching, and efficient string operations. This module implements three essential string algorithms with different approaches and use cases.
+
+---
+
+#### Trie (Prefix Tree)
+
+**What is a Trie?**
+A Trie (pronounced "try") is a tree-based data structure optimized for prefix-based string operations. Each node represents a character, and paths from root to nodes form words.
+
+**Structure:**
+```c
+typedef struct TrieNode {
+    struct TrieNode* children[26];  // For lowercase a-z
+    bool is_end_of_word;            // Marks complete word
+} TrieNode;
+```
+
+**Key Operations:**
+
+1. **Insert** - O(m) where m = word length
+   - Traverse character by character
+   - Create nodes for missing characters
+   - Mark last node as word ending
+
+2. **Search** - O(m)
+   - Follow path matching characters
+   - Check if final node marks end of word
+
+3. **Prefix Search** - O(m)
+   - Traverse as far as prefix allows
+   - Return true if all characters found
+
+4. **Autocomplete** - O(p + n) where p = prefix length, n = subtree size
+   - Find prefix node
+   - DFS to collect all words in subtree
+
+**When to Use Tries:**
+- ✅ Autocomplete systems
+- ✅ Spell checkers
+- ✅ IP routing tables (prefix matching)
+- ✅ Dictionary with many prefix queries
+- ❌ NOT for single-word lookups (use hash table)
+- ❌ NOT for space-constrained systems (high memory overhead)
+
+**Complexity:**
+- **Insert**: O(m) time, O(m) space per word
+- **Search**: O(m) time, O(1) space
+- **Prefix search**: O(m) time, O(1) space
+- **Autocomplete**: O(p + n×k) where k = average word length
+- **Space**: O(ALPHABET_SIZE × N × M) worst case
+
+**Example Use Case:**
+```
+Dictionary: ["cat", "car", "card", "care", "careful"]
+
+Search "car"    → Found!
+Prefix "car"    → Matches 4 words
+Autocomplete    → ["card", "care", "careful"]
+```
+
+---
+
+#### Rabin-Karp Algorithm
+
+**What is Rabin-Karp?**
+A pattern matching algorithm using rolling hash for efficient substring search. Instead of comparing characters one-by-one, it compares hash values for O(1) matching.
+
+**Core Concept: Rolling Hash**
+
+```
+Text:    "abcdef"
+Pattern: "cde" (length = 3)
+
+Hash("abc") → slide → Hash("bcd") → slide → Hash("cde") ✓
+```
+
+**Key Formula:**
+```
+hash[i+1] = (hash[i] - text[i] * h) * d + text[i+m]
+
+where:
+- d = base (e.g., 256 for ASCII)
+- h = d^(m-1) mod q
+- q = prime modulus (reduces collisions)
+```
+
+**Algorithm Steps:**
+
+1. **Compute pattern hash** - O(m)
+2. **Compute first window hash** - O(m)
+3. **Slide window** - O(n-m+1)
+   - Compare hash values (O(1))
+   - On match: verify characters (O(m)) - handles collisions
+   - Roll hash to next position (O(1))
+
+**When to Use Rabin-Karp:**
+- ✅ Multiple pattern searches in same text
+- ✅ 2D pattern matching (images)
+- ✅ Plagiarism detection
+- ✅ When preprocessing is amortized over many searches
+- ❌ NOT for single pattern search (KMP is faster)
+- ❌ NOT when worst-case guarantees needed
+
+**Complexity:**
+- **Best/Average**: O(n + m) - constant hash comparisons
+- **Worst case**: O(n×m) - hash collisions force character checks
+- **Space**: O(1)
+
+**Example:**
+```
+Text:    "AABAACAADAABAABA"
+Pattern: "AABA"
+
+Hash mismatches: O(1) rejection
+Hash matches:    O(m) verification
+Found at:        0, 9, 12
+```
+
+**Why Rolling Hash is Fast:**
+```
+Window "ABC" hash = (A×d² + B×d + C) mod q
+
+Slide to "BCD":
+- Remove A: hash - A×d²
+- Multiply: (hash - A×d²) × d
+- Add D: (hash - A×d²) × d + D
+
+All operations: O(1)!
+```
+
+---
+
+#### Knuth-Morris-Pratt (KMP) Algorithm
+
+**What is KMP?**
+An efficient pattern matching algorithm that avoids redundant comparisons by preprocessing the pattern to compute a failure function (LPS array).
+
+**Core Concept: LPS Array (Longest Proper Prefix which is also Suffix)**
+
+The LPS array tells us how many characters we can skip when a mismatch occurs.
+
+**Example:**
+```
+Pattern: "ABABC"
+Index:    0 1 2 3 4
+LPS:      0 0 1 2 0
+
+"ABABC"
+  ^^    - "AB" has no proper prefix-suffix → LPS[1] = 0
+"ABABC"
+  ^^^^  - "ABAB" has "AB" matching → LPS[3] = 2
+```
+
+**Why LPS Works:**
+
+When mismatch occurs at position j:
+- We know pattern[0...j-1] matched
+- LPS[j-1] tells us longest prefix that matches
+- Jump to LPS[j-1], skip redundant comparisons
+
+**Algorithm Steps:**
+
+1. **Compute LPS array** - O(m)
+   ```c
+   lps[0] = 0;  // Base case
+   for (i = 1, len = 0; i < m; ) {
+       if (pattern[i] == pattern[len]) {
+           lps[i++] = ++len;  // Extend match
+       } else if (len > 0) {
+           len = lps[len - 1];  // Try shorter prefix
+       } else {
+           lps[i++] = 0;  // No match
+       }
+   }
+   ```
+
+2. **Pattern matching** - O(n)
+   ```c
+   for (i = 0, j = 0; i < n; ) {
+       if (text[i] == pattern[j]) {
+           i++; j++;  // Match: advance both
+           if (j == m) {  // Found!
+               j = lps[j-1];  // Continue searching
+           }
+       } else if (j > 0) {
+           j = lps[j-1];  // Mismatch: use LPS
+       } else {
+           i++;  // No match, advance text
+       }
+   }
+   ```
+
+**Why KMP is Optimal:**
+
+Traditional approach backtracks on mismatch:
+```
+Text:    "AABAACAADAABAABA"
+Pattern: "AABAAC"
+         ^^^^^^ mismatch → backtrack to position 1
+```
+
+KMP never backtracks in text:
+```
+Text:    "AABAACAADAABAABA"
+Pattern: "AABAAC"
+         ^^^^^^ mismatch → jump pattern to LPS[5]=2
+         Skip already-matched prefix!
+```
+
+**When to Use KMP:**
+- ✅ Single pattern, large text
+- ✅ Real-time streaming data (no backtracking)
+- ✅ Need O(n+m) worst-case guarantee
+- ✅ Pattern has repeated prefixes
+- ❌ NOT for multiple patterns (use Aho-Corasick)
+- ❌ NOT for very short patterns (naive is simpler)
+
+**Complexity:**
+- **Preprocessing (LPS)**: O(m) time, O(m) space
+- **Searching**: O(n) time, O(1) space (excluding LPS)
+- **Overall**: O(n + m) time, O(m) space
+- **Worst case guaranteed!**
+
+**Example with LPS:**
+```
+Text:    "ABABDABACDABABCABAB"
+Pattern: "ABABCABAB"
+LPS:     [0,0,1,2,0,1,2,3,4]
+
+Mismatch at position 4 ('D' vs 'C'):
+- Already matched "ABAB" (4 chars)
+- LPS[3] = 2 means "AB" prefix matches "AB" suffix
+- Jump pattern forward 2 positions
+- Continue from text position 4, pattern position 2
+- No backtracking in text!
+```
+
+---
+
+#### Boyer-Moore Algorithm
+
+**What is Boyer-Moore?**
+An advanced string matching algorithm that scans the pattern from **right to left** while moving through the text left to right. Often faster than KMP in practice because it can skip large sections of text.
+
+**Core Concept: Right-to-Left Scanning**
+
+Unlike most pattern matching algorithms that scan left-to-right, Boyer-Moore compares characters from the rightmost position of the pattern first:
+
+```
+Text:    "HERE IS A SIMPLE EXAMPLE"
+Pattern: "EXAMPLE"
+
+Step 1: Align at start, compare from right
+        HERE IS A SIMPLE EXAMPLE
+        EXAMPLE
+               ^ 'E' vs ' ' mismatch
+        ' ' not in pattern → skip entire pattern (7 positions)
+
+Step 2: Jump to position 7
+        HERE IS A SIMPLE EXAMPLE
+               EXAMPLE
+                      ^ Compare from right again
+```
+
+**Two Heuristics:**
+
+1. **Bad Character Rule** (implemented):
+   - When mismatch occurs, align pattern so the mismatched text character matches its rightmost occurrence in pattern
+   - If character not in pattern, skip past it entirely
+
+2. **Good Suffix Rule** (advanced):
+   - When partial match found, align next occurrence of matched suffix
+   - Further optimizes skipping
+
+**Bad Character Table Example:**
+
+```
+Pattern: "EXAMPLE"
+Index:    0123456
+
+bad_char['E'] = 6  (rightmost E)
+bad_char['X'] = 1
+bad_char['A'] = 2
+bad_char['M'] = 3
+bad_char['P'] = 4
+bad_char['L'] = 5
+bad_char['Z'] = -1 (not in pattern)
+```
+
+**Why Boyer-Moore is Often Faster:**
+
+- **Sublinear in best case**: O(n/m) - can skip m characters at a time
+- **Early mismatch detection**: Scans right-to-left, so unlikely matches fail fast
+- **Large skips**: Can jump multiple positions when mismatch occurs
+
+**Example Comparison:**
+
+Searching for "NEEDLE" in 1MB English text:
+- **Naive**: ~1,000,000 comparisons
+- **KMP**: ~1,000,000 comparisons (linear, but never backtracks)
+- **Boyer-Moore**: ~200,000 comparisons (can skip sections)
+
+**When to Use Boyer-Moore:**
+
+- ✅ Long patterns (length > 5)
+- ✅ Large alphabet (English text, DNA with many bases)
+- ✅ Pattern unlikely to match frequently
+- ✅ Text editors, grep, real-world search
+- ✅ Random access to text available
+
+- ❌ Short patterns (overhead not worth it)
+- ❌ Small alphabet with many matches
+- ❌ Streaming data (needs to access arbitrary positions)
+
+**Complexity:**
+- **Best case**: O(n/m) - sublinear!
+- **Average case**: O(n)
+- **Worst case**: O(n×m) - rare, when many false matches
+- **Space**: O(σ) where σ = alphabet size
+- **Preprocessing**: O(m + σ)
+
+**Comparison with KMP:**
+
+| Feature | KMP | Boyer-Moore |
+|---------|-----|-------------|
+| Scan direction | Left-to-right | Right-to-left |
+| Text access | Sequential | Random |
+| Best case | O(n) | O(n/m) |
+| Worst case | O(n+m) guaranteed | O(n×m) rare |
+| Streaming | ✓ | ✗ |
+| Long patterns | Good | Better |
+| Practical speed | Fast | Often faster |
+
+**Real-World Use:**
+- GNU grep (uses Boyer-Moore variant)
+- Text editors (search functionality)
+- UNIX utilities
+- Database LIKE queries
+
+---
+
+#### Levenshtein Distance (Edit Distance)
+
+**What is Levenshtein Distance?**
+The minimum number of single-character edits (insertions, deletions, substitutions) required to transform one string into another. A fundamental measure of string similarity.
+
+**Examples:**
+
+```
+"kitten" → "sitting"
+  k → s     (substitute)    1 edit
+  e → i     (substitute)    2 edits
+  insert t                  3 edits
+  Distance = 3
+
+"saturday" → "sunday"
+  delete a                  1 edit
+  delete t                  2 edit
+  r → n    (substitute)     3 edits
+  Distance = 3
+
+"book" → "back"
+  o → a    (substitute)     1 edit
+  o → c    (substitute)     2 edits
+  Distance = 2
+```
+
+**Dynamic Programming Approach:**
+
+Build a table `dp[i][j]` where each cell represents the edit distance between the first `i` characters of string1 and first `j` characters of string2.
+
+**Base Cases:**
+```
+dp[0][j] = j  (insert j characters)
+dp[i][0] = i  (delete i characters)
+```
+
+**Recurrence Relation:**
+```
+If str1[i-1] == str2[j-1]:
+    dp[i][j] = dp[i-1][j-1]  (no edit needed)
+Else:
+    dp[i][j] = 1 + min(
+        dp[i-1][j],      // delete from str1
+        dp[i][j-1],      // insert into str1
+        dp[i-1][j-1]     // substitute
+    )
+```
+
+**DP Table Example: "kitten" → "sitting"**
+
+```
+       ""  s  i  t  t  i  n  g
+   ""   0  1  2  3  4  5  6  7
+   k    1  1  2  3  4  5  6  7
+   i    2  2  1  2  3  4  5  6
+   t    3  3  2  1  2  3  4  5
+   t    4  4  3  2  1  2  3  4
+   e    5  5  4  3  2  2  3  4
+   n    6  6  5  4  3  3  2  3
+
+Result: dp[6][7] = 3
+```
+
+**Algorithm Steps:**
+
+1. **Initialize**: Create (m+1) × (n+1) table
+2. **Base cases**: Fill first row and column
+3. **Fill table**: Use recurrence relation
+4. **Result**: Bottom-right cell contains distance
+
+**Applications:**
+
+**Spell Checking:**
+```
+Typo: "recieve"
+Dictionary: ["receive", "deceive", "relieve", "believe"]
+
+Distances:
+  "receive"  → 2
+  "deceive"  → 3
+  "relieve"  → 1 ✓ closest!
+  "believe"  → 2
+
+Suggestion: "Did you mean 'relieve'?"
+```
+
+**DNA Sequence Alignment:**
+```
+Sequence1: "AGCT"
+Sequence2: "AGT"
+Distance: 1 (delete C)
+
+Used in genome analysis and evolutionary biology
+```
+
+**Fuzzy String Matching:**
+```
+Search: "algorithm"
+Results with distance ≤ 2:
+  - "algorithms"  (1 - insert s)
+  - "algorithmic" (2 - substitute m→i, insert c)
+```
+
+**Real-World Uses:**
+
+- ✅ **Spell checkers**: Find closest dictionary match
+- ✅ **Autocorrect**: Suggest corrections
+- ✅ **Fuzzy search**: Match similar strings
+- ✅ **DNA alignment**: Compare genetic sequences
+- ✅ **Diff tools**: git diff, version control
+- ✅ **Plagiarism detection**: Measure text similarity
+- ✅ **Speech recognition**: Match phonetic similarity
+- ✅ **Record linkage**: Match database entries
+- ✅ **Translation memory**: Match similar sentences
+
+**Complexity:**
+- **Time**: O(m×n) where m, n are string lengths
+- **Space**: O(m×n) for full table
+- **Space optimized**: O(min(m,n)) - only keep two rows
+
+**Variants:**
+
+1. **Damerau-Levenshtein**: Also allows transpositions
+   - "ab" → "ba" = 1 edit (not 2)
+   - Better models human typos
+
+2. **Hamming Distance**: Only substitutions, equal length
+   - Simpler, but strings must be same length
+   - Used in error detection codes
+
+3. **Longest Common Subsequence (LCS)**:
+   - Related problem using similar DP
+   - Used in diff algorithms
+
+**Space Optimization:**
+
+Only two rows needed at a time:
+```c
+// Instead of full O(m×n) table:
+int dp[m+1][n+1];
+
+// Only keep current and previous row:
+int prev_row[n+1];
+int curr_row[n+1];
+// Space: O(n)
+```
+
+**Why Dynamic Programming?**
+
+Naive approach tries all edit sequences: O(3^max(m,n)) - exponential!
+
+DP exploits optimal substructure:
+- Distance(str1[0..i], str2[0..j]) uses distances of smaller subproblems
+- Store results to avoid recomputation
+- Reduces to O(m×n) polynomial time
+
+**Threshold Filtering:**
+
+For large-scale matching, compute early exit:
+```
+If |len(str1) - len(str2)| > threshold:
+    Skip computation (distance must exceed threshold)
+```
+
+**Weighted Edit Distance:**
+
+Can assign different costs to operations:
+```
+- Insert: cost 1
+- Delete: cost 1
+- Substitute: cost 2
+- Transpose: cost 1
+
+Allows modeling domain-specific edit costs
+```
+
+---
+
+#### Algorithm Comparison
+
+| Algorithm | Best | Average | Worst | Space | Best For |
+|-----------|------|---------|-------|-------|----------|
+| **Trie** | O(m) | O(m) | O(m) | O(ALPHABET×N×M) | Prefix queries, autocomplete |
+| **Rabin-Karp** | O(n+m) | O(n+m) | O(n×m) | O(1) | Multiple patterns, 2D search |
+| **KMP** | O(n+m) | O(n+m) | O(n+m) | O(m) | Single pattern, guaranteed performance |
+| **Boyer-Moore** | O(n/m) | O(n) | O(n×m) | O(σ) | Long patterns, large alphabets |
+| **Levenshtein** | O(m×n) | O(m×n) | O(m×n) | O(m×n) or O(min(m,n)) | String similarity, fuzzy matching |
+
+**When to use which:**
+
+```
+Prefix operations?          → Trie
+Multiple pattern searches?  → Rabin-Karp
+Single pattern, streaming?  → KMP
+Long pattern, large alphabet? → Boyer-Moore
+Need worst-case O(n+m)?    → KMP
+2D pattern matching?       → Rabin-Karp
+Autocomplete?              → Trie
+String similarity/distance? → Levenshtein
+Spell checking?            → Levenshtein + Trie
+Fuzzy search?              → Levenshtein
+DNA sequence alignment?    → Levenshtein
+Short pattern?             → Naive (simplest)
+Fast text editor search?   → Boyer-Moore
+```
+
+---
+
+#### Key Concepts
+
+**Pattern Matching Evolution:**
+1. **Naive**: O(n×m) - check every position
+2. **Rabin-Karp**: O(n+m) average - hash-based skipping
+3. **KMP**: O(n+m) worst-case - LPS-based skipping
+4. **Boyer-Moore**: O(n/m) best - right-to-left scanning
+5. **Aho-Corasick**: O(n+m+z) - multiple patterns simultaneously
+
+**Trie Applications:**
+- Autocomplete in search engines
+- IP routing (longest prefix match)
+- Spell checking with prefix suggestion
+- T9 predictive text
+- Genome sequence analysis
+
+**Hashing in String Algorithms:**
+- Rabin-Karp: Rolling hash for pattern matching
+- Polynomial hashing: minimize collisions
+- Prime modulus: distribute hash values
+- Trade-off: Speed vs collision probability
+
+**Failure Functions:**
+- KMP: LPS array (longest proper prefix suffix)
+- Aho-Corasick: Failure links for multiple patterns
+- Finite automata: State transitions on mismatch
+- Enables linear-time pattern matching
+
+---
+
 ### Quick Reference Table
 
 | Data Structure/Algorithm | Search | Insert | Delete | Space | Notes |
@@ -2716,6 +3301,13 @@ Need in-place array sort? → Quicksort
 | Quicksort (array) | - | - | - | O(log n) | O(n log n) avg, in-place |
 | Bucket Sort | - | - | - | O(k) | O(n+k) time, k=range |
 | Bitonic Sort | - | - | - | O(log n) | O(n log² n), parallel |
+| **String Algorithms** | | | | | |
+| Trie insert/search | O(m) | O(m) | O(m) | O(ALPHABET×N×M) | m = word length |
+| Trie autocomplete | O(p+n×k) | - | - | O(1) | p=prefix, n=results, k=avg length |
+| Rabin-Karp | O(n+m) | O(n+m) | O(n×m) | O(1) | Rolling hash |
+| KMP | O(n+m) | O(n+m) | O(n+m) | O(m) | LPS array preprocessing |
+| Boyer-Moore | O(n/m) | O(n) | O(n×m) | O(σ) | Right-to-left scan, σ=alphabet |
+| Levenshtein Distance | O(m×n) | O(m×n) | O(m×n) | O(m×n) or O(min(m,n)) | Edit distance DP |
 
 ### Space Complexity Notes:
 
@@ -2770,6 +3362,7 @@ Need in-place array sort? → Quicksort
 9. **Master Graphs** - Shortest paths, DFS/BFS, real-world networks
 10. **Understand Hash Tables** - O(1) lookups, collision resolution, hash functions
 11. **Study Sorting Algorithms** - Compare approaches, understand trade-offs
+12. **Learn String Algorithms** - Tries for prefix search, KMP/Rabin-Karp for pattern matching
 
 ### Key Concepts to Understand:
 
