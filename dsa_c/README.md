@@ -16,6 +16,7 @@ A comprehensive collection of classic data structures and algorithms implemented
   - [7. List Search Algorithms](#7-list-search-algorithms)
   - [8. Dynamic Programming](#8-dynamic-programming)
   - [9. Graphs and Shortest Path Algorithms](#9-graphs-and-shortest-path-algorithms)
+  - [10. Hash Tables](#10-hash-tables)
 - [Complexity Summary](#complexity-summary)
 
 ---
@@ -34,7 +35,8 @@ dsa_c/
 │   ├── skip_list.c
 │   ├── list_search.c
 │   ├── dynamic_programming.c
-│   └── 9_graphs.c
+│   ├── 9_graphs.c
+│   └── 10_hash_tables.c
 ├── makefiles/              # Build configurations
 │   ├── recursion.mk
 │   ├── linked_lists.mk
@@ -44,7 +46,8 @@ dsa_c/
 │   ├── skip_list.mk
 │   ├── list_search.mk
 │   ├── dynamic_programming.mk
-│   └── graphs.mk
+│   ├── graphs.mk
+│   └── hash_tables.mk
 ├── out/                    # Compiled binaries and visualizations
 ├── Makefile               # Master build file
 └── compile_and_run.sh     # Interactive build & run script
@@ -85,6 +88,7 @@ make rebuild
 ./out/list_search
 ./out/dynamic_programming
 ./out/9_graphs
+./out/10_hash_tables
 ```
 
 ---
@@ -2125,6 +2129,154 @@ Sparse (E = 5,000):
 
 ---
 
+### 10. Hash Tables
+
+**File:** `src/10_hash_tables.c`
+
+Hash tables provide O(1) average-case lookups using hash functions and collision resolution.
+
+#### What is a Hash Table?
+
+A hash table maps keys to values using a hash function:
+1. **Hash function** converts key → array index
+2. Store key-value pair at that index
+3. Handle **collisions** when different keys hash to same index
+
+**Time Complexity:**
+- Average case: **O(1)** for insert, search, delete
+- Worst case: **O(n)** if all keys collide (becomes linked list)
+
+**Space Complexity:** O(n + m) where n = entries, m = table size
+
+#### Hash Functions Implemented
+
+**1. Additive Hash (Poor)**
+```c
+hash = sum of all character values
+```
+- ❌ Anagrams collide ("cat" == "act" == "tac")
+- ❌ Poor distribution
+- Used to demonstrate why hash quality matters
+
+**2. Multiplicative Hash (Better)**
+```c
+hash = (hash * 31) + char
+```
+- ✅ Position matters ("abc" ≠ "bca")
+- ✅ Prime multiplier (31) improves distribution
+- Common in practice
+
+**3. DJB2 Hash (Excellent)**
+```c
+hash = ((hash << 5) + hash) + char  // hash * 33 + char
+```
+- ✅ Created by Dan Bernstein
+- ✅ Magic constant 33 = 32 + 1 (fast bit shift)
+- ✅ Starting value 5381 empirically chosen
+- ✅ Very good distribution for strings
+
+**4. FNV-1a Hash (Excellent)**
+```c
+hash = (hash XOR char) * FNV_PRIME
+```
+- ✅ Fowler-Noll-Vo algorithm
+- ✅ Excellent avalanche effect
+- ✅ Industry standard
+- ✅ Good for hash tables
+
+#### Collision Resolution: Chaining
+
+**Implementation:** Array of linked lists
+- Each bucket is a linked list
+- Multiple keys at same index → stored in same list
+- Simple and handles unlimited collisions
+
+**Performance Impact:**
+```
+Load Factor = entries / table_size
+
+< 0.5:  Fast but wastes space
+~0.75:  Optimal balance (recommended)
+> 1.0:  Slower, many collisions
+```
+
+#### Features
+
+**Interactive Menu:**
+1. Insert key-value pair
+2. Search for key
+3. Delete key
+4. Display table (shows all buckets and chains)
+5. Show statistics (collisions, load factor, chain lengths)
+6. Change hash function (compare all 4 on-the-fly)
+7. Clear table
+
+**Demonstrations:**
+1. **Hash Function Comparison** - Shows anagrams with all 4 hash functions
+2. **Collision Demo** - Uses poor hash to force collisions
+3. **Good Distribution** - Shows optimal spreading with DJB2
+
+#### Key Concepts
+
+**Hash Function Quality:**
+```
+Poor Hash (Additive):
+  "listen" → 5
+  "silent" → 5  ← COLLISION!
+  "enlist" → 5  ← COLLISION!
+
+Good Hash (DJB2):
+  "listen" → 6
+  "silent" → 6  ← Different internal paths
+  "enlist" → 6  ← All hash differently
+```
+
+**Chaining Visualization:**
+```
+Bucket 0: [key1=val1] → [key2=val2] → NULL
+Bucket 1: (empty)
+Bucket 2: [key3=val3] → NULL
+Bucket 3: [key4=val4] → [key5=val5] → [key6=val6] → NULL
+```
+
+**Statistics Tracked:**
+- Total collisions
+- Load factor
+- Max chain length
+- Average chain length
+- Empty vs used buckets
+
+#### When to Use Hash Tables
+
+**Excellent for:**
+- ✅ Fast lookups (O(1) average)
+- ✅ Caching (URL → content)
+- ✅ Frequency counting (word → count)
+- ✅ Database indexing (key → record)
+- ✅ Symbol tables in compilers
+- ✅ Removing duplicates
+
+**Not ideal for:**
+- ❌ Ordered data (use trees)
+- ❌ Range queries (need sorted structure)
+- ❌ Guaranteed O(1) worst-case (can degrade to O(n))
+
+#### Implementation Details
+
+- Uses linked list chaining (leverages `2_linked_lists.h` concepts)
+- Tracks collision statistics for analysis
+- Supports dynamic hash function switching
+- Real-time performance visualization
+- Educational anagram tests
+
+**Key Observations:**
+1. Hash function quality dramatically affects performance
+2. Load factor should stay below 0.75
+3. Chaining is simple but chains should be short
+4. Prime table sizes improve distribution
+
+---
+
 ### Quick Reference Table
 
 | Data Structure/Algorithm | Search | Insert | Delete | Space | Notes |
@@ -2169,6 +2321,9 @@ Sparse (E = 5,000):
 | Prim's MST | O(V²) or O((V+E)logV) | - | - | O(V) | Dense graphs |
 | Kruskal's MST | O(E log E) | - | - | O(V+E) | Sparse graphs |
 | Union-Find | O(α(V)) | - | - | O(V) | α ≈ constant |
+| **Hash Tables** | | | | | |
+| Hash Table (chaining) | O(1) avg, O(n) worst | O(1) avg | O(1) avg | O(n+m) | m = table size |
+| Hash Function | O(k) | - | - | O(1) | k = key length |
 
 ### Space Complexity Notes:
 
@@ -2221,6 +2376,7 @@ Sparse (E = 5,000):
 7. **Practice Two-Pointer Techniques** - Essential interview skill
 8. **Explore Dynamic Programming** - Advanced optimization
 9. **Master Graphs** - Shortest paths, DFS/BFS, real-world networks
+10. **Understand Hash Tables** - O(1) lookups, collision resolution, hash functions
 
 ### Key Concepts to Understand:
 
