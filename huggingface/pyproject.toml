@@ -1,0 +1,14 @@
+[project]
+name = "huggingface"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "transformers[sentencepiece,torch]>=5.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "jupyterlab>=4.5.4",
+]
